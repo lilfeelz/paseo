@@ -2,6 +2,7 @@ import { isElectronRuntime } from "@/desktop/host";
 import { invokeDesktopCommand } from "@/desktop/electron/invoke";
 import { isWeb } from "@/constants/platform";
 import { i18n } from "@/i18n/i18next";
+import { isWorkspacesOnlyBuild } from "@/constants/workspaces-only";
 
 export interface DesktopAppUpdateCheckResult {
   hasUpdate: boolean;
@@ -62,7 +63,7 @@ function toNumberOr(defaultValue: number, value: unknown): number {
 }
 
 export function shouldShowDesktopUpdateSection(): boolean {
-  return isWeb && isElectronRuntime();
+  return isWeb && isElectronRuntime() && !isWorkspacesOnlyBuild;
 }
 
 export function parseLocalDaemonVersionResult(raw: unknown): LocalDaemonVersionResult {

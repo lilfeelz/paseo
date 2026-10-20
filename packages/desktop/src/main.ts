@@ -112,10 +112,14 @@ import {
 import { AgentNavigationInbox, parseAgentDeepLinkFromArgv } from "./agent-navigation.js";
 
 const DEV_SERVER_URL = process.env.EXPO_DEV_URL ?? "http://localhost:8081";
-const APP_SCHEME = "paseo";
+const WORKSPACES_BRANDED =
+  process.env.PASEO_WORKSPACES_BRANDED === "1" ||
+  (app.isPackaged && process.execPath.includes(`${path.sep}Paseo Workspaces.app${path.sep}`));
+const APP_SCHEME = WORKSPACES_BRANDED ? "paseows" : "paseo";
 const PASEO_DEBUG = process.env.PASEO_DEBUG === "1";
 const DISABLE_SINGLE_INSTANCE_LOCK = process.env.PASEO_DISABLE_SINGLE_INSTANCE_LOCK === "1";
-const APP_NAME = process.env.PASEO_TEST_APP_NAME?.trim() || "Paseo";
+const APP_NAME =
+  process.env.PASEO_TEST_APP_NAME?.trim() || (WORKSPACES_BRANDED ? "Paseo Workspaces" : "Paseo");
 const DESKTOP_WINDOW_CHROME_MODE = resolveDesktopWindowChromeMode({
   platform: process.platform,
   override: process.env.PASEO_DESKTOP_WINDOW_CONTROLS,
@@ -135,6 +139,9 @@ const bootstrapComplete = new Promise<void>((resolve) => {
 let bootstrapIsComplete = false;
 
 app.setName(APP_NAME);
+if (WORKSPACES_BRANDED && app.isPackaged) {
+  app.setPath("userData", path.join(app.getPath("appData"), "Paseo Workspaces"));
+}
 log.info("[desktop] app startup", {
   version: app.getVersion(),
   platform: process.platform,

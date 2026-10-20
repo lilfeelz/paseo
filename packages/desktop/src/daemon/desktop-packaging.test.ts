@@ -20,23 +20,24 @@ function writeExecutable(filePath: string, contents: string): void {
   chmodSync(filePath, 0o755);
 }
 
-function createFakeMacBundle(options: { includeHelper: boolean }): {
+function createFakeMacBundle(options: { includeHelper: boolean; appName?: string }): {
   root: string;
   shimPath: string;
 } {
   const root = mkdtempSync(join(tmpdir(), "paseo-cli-shim-test-"));
-  const appPath = join(root, "Paseo.app");
+  const appName = options.appName ?? "Paseo";
+  const appPath = join(root, `${appName}.app`);
   const contentsPath = join(appPath, "Contents");
   const resourcesPath = join(contentsPath, "Resources");
   const shimPath = join(resourcesPath, "bin", "paseo");
-  const mainPath = join(contentsPath, "MacOS", "Paseo");
+  const mainPath = join(contentsPath, "MacOS", appName);
   const helperPath = join(
     contentsPath,
     "Frameworks",
-    "Paseo Helper.app",
+    `${appName} Helper.app`,
     "Contents",
     "MacOS",
-    "Paseo Helper",
+    `${appName} Helper`,
   );
 
   mkdirSync(dirname(shimPath), { recursive: true });
@@ -162,6 +163,22 @@ describe("desktop packaging", () => {
     }
   });
 
+  it("resolves the renamed workspace app Helper executable", () => {
+    if (process.platform === "win32") return;
+
+    const bundle = createFakeMacBundle({ includeHelper: true, appName: "Paseo Workspaces" });
+    try {
+      const result = spawnSync(bundle.shimPath, ["--version"], { encoding: "utf8" });
+
+      expect(result.status).toBe(0);
+      expect(result.stdout).toContain(`helper env=1/production cli=${bundle.shimPath}`);
+      expect(result.stdout).toContain("--version");
+      expect(result.stdout).not.toContain("main-executable");
+    } finally {
+      rmSync(bundle.root, { recursive: true, force: true });
+    }
+  });
+
   it("fails packaged macOS CLI startup when Helper is missing", () => {
     if (process.platform === "win32") return;
 
@@ -170,7 +187,7 @@ describe("desktop packaging", () => {
       const result = spawnSync(bundle.shimPath, ["--version"], { encoding: "utf8" });
 
       expect(result.status).toBe(1);
-      expect(result.stderr).toContain("Bundled Paseo Helper executable not found");
+      expect(result.stderr).toContain("Bundled Electron Helper executable not found");
       expect(result.stdout).not.toContain("main-executable");
     } finally {
       rmSync(bundle.root, { recursive: true, force: true });
