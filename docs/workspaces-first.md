@@ -20,13 +20,22 @@ Paseo session. It does not add a second network service or store communication c
 
 ## Development
 
+Run the workspace-first client with:
+
+```sh
+npm run dev:app:workspaces
+```
+
+This opens the Workspaces screen after host startup and keeps only its sidebar entry, Hosts, and
+Settings. Use Hosts to pair a daemon and Settings to change connection preferences. The standard
+Paseo client remains available through `npm run dev:app`.
+
 ```sh
 npm ci
 npm run build:client
 npm run build:plugin
 npm run build --workspace=@getpaseo/highlight
 npm run dev:server
-npm run dev:app
 ```
 
 The built-in plugin is registered in `packages/server/src/server/plugins/builtin/index.ts` and its
@@ -34,5 +43,5 @@ source is under `plugins/workspaces-bridge/`. It is included in the daemon's bui
 without installing or enabling a local plugin. Its backend invokes only `ws list` and `ws dir` with
 argument arrays; the terminal command is separately created by the Paseo client API.
 
-This change adds a workspace-first entry point. The upstream agent, editor, and orchestration
-features remain in the app and daemon; no unsupported feature-removal mode is claimed here.
+The workspace-first mode narrows the client navigation and startup view. Paseo's upstream server
+and app modules remain in the build, so direct links to other supported screens still work.

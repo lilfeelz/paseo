@@ -40,6 +40,16 @@ export type SidebarNavItem<Section extends SidebarSection = SidebarSection> =
   | BuiltinSidebarNavItem<Section>
   | PluginSidebarNavItem;
 
+export function resolveWorkspaceOnlyNavItems<Section extends SidebarSection>(
+  section: Section,
+  items: readonly SidebarNavItem<Section>[],
+): SidebarNavItem<Section>[] {
+  if (section !== "header") return [];
+  return items.filter(
+    (item) => item.kind === "plugin" && item.group.pluginId === "workspaces-bridge",
+  );
+}
+
 const BUILTIN_LABEL_KEYS: Record<BuiltinSidebarItemId, string> = {
   "new-workspace": "sidebar.actions.newWorkspace",
   history: "sidebar.sections.sessions",

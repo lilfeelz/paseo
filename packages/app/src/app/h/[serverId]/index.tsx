@@ -10,6 +10,8 @@ import {
   useIsLastWorkspaceSelectionHydrated,
   useLastWorkspaceSelection,
 } from "@/stores/navigation-active-workspace-store";
+import { isWorkspacesOnlyBuild } from "@/constants/workspaces-only";
+import { buildPluginSurfaceRoute } from "@/plugins/routes";
 
 export default function HostIndexRoute() {
   const serverId = useHostRouteServerId();
@@ -22,6 +24,17 @@ export default function HostIndexRoute() {
 
   if (!serverId || !isWorkspaceSelectionLoaded) {
     return <StartupSplashScreen />;
+  }
+
+  if (isWorkspacesOnlyBuild) {
+    return (
+      <Redirect
+        href={buildPluginSurfaceRoute(serverId, "workspaces-bridge", {
+          kind: "surface",
+          id: "main",
+        })}
+      />
+    );
   }
 
   return (

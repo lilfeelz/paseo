@@ -4,6 +4,7 @@ import {
   builtinSidebarNavShortcutAction,
   moveSidebarNavItem,
   pluginSidebarNavKey,
+  resolveWorkspaceOnlyNavItems,
   resolveSidebarNavItems,
   setSidebarNavItemVisible,
   type SidebarNavItem,
@@ -111,6 +112,26 @@ describe("resolveSidebarNavItems", () => {
       { key: "search", visible: true },
       { key: "schedules", visible: true },
     ]);
+  });
+});
+
+describe("resolveWorkspaceOnlyNavItems", () => {
+  it("keeps only the workspace bridge plugin and hides it from the footer", () => {
+    const headerItems = resolveSidebarNavItems({
+      section: "header",
+      pluginGroups: [group("workspaces-bridge", "workspaces"), kanban],
+      preferences: [],
+    });
+    const footerItems = resolveSidebarNavItems({
+      section: "footer",
+      pluginGroups: [group("workspaces-bridge", "workspaces"), kanban],
+      preferences: [],
+    });
+
+    expect(resolveWorkspaceOnlyNavItems("header", headerItems).map((item) => item.key)).toEqual([
+      pluginSidebarNavKey(group("workspaces-bridge", "workspaces")),
+    ]);
+    expect(resolveWorkspaceOnlyNavItems("footer", footerItems)).toEqual([]);
   });
 });
 
