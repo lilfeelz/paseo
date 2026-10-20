@@ -1,0 +1,4 @@
+{
+  "id": "workspaces-bridge",
+  "requirements": { "paseo": ">=0.12.0" }
+}
