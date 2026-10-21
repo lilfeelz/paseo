@@ -29,6 +29,7 @@ jobs:
         env:
           PASEO_WORKSPACES_BRANDED: "1"
           PASEO_METRO_MAX_WORKERS: "1"
+          NODE_OPTIONS: "--max-old-space-size=4096"
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
           EP_GH_IGNORE_TIME: "true"
         run: npm run build:desktop:workspaces -- --publish never --mac --arm64 --config.mac.notarize=false --config.mac.hardenedRuntime=false
