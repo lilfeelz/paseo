@@ -355,8 +355,15 @@ function readIfExists(filePath) {
   return fs.existsSync(filePath) ? fs.readFileSync(filePath, "utf8") : null;
 }
 
+function getDesktopLogPath({ userData, daemonHome }) {
+  if (process.platform === "darwin" && process.env.PASEO_WORKSPACES_BRANDED === "1") {
+    return path.join(daemonHome, "Library", "Logs", "Paseo Workspaces", "main.log");
+  }
+  return path.join(userData, "logs", "main.log");
+}
+
 function formatLogs({ stdout, stderr, userData, daemonHome }) {
-  const desktopLog = readIfExists(path.join(userData, "logs", "main.log"));
+  const desktopLog = readIfExists(getDesktopLogPath({ userData, daemonHome }));
   const daemonLog = readIfExists(path.join(daemonHome, "daemon.log"));
   return [
     `App stdout:\n${stdout.join("").trim() || "<empty>"}`,
@@ -385,7 +392,7 @@ async function writeSmokeArtifacts({ page, stdout, stderr, userData, daemonHome,
     )}\n`,
   );
 
-  const desktopLog = readIfExists(path.join(userData, "logs", "main.log"));
+  const desktopLog = readIfExists(getDesktopLogPath({ userData, daemonHome }));
   if (desktopLog !== null) {
     fs.writeFileSync(path.join(artifactDir, "desktop-main.log"), desktopLog);
   }
@@ -1015,7 +1022,7 @@ async function smokePackagedDesktopApp({
       deadline,
     });
     if (process.env.PASEO_WORKSPACES_BRANDED === "1") {
-      await waitForFile(path.join(userData, "logs", "main.log"), "workspace app user-data log");
+      await waitForFile(getDesktopLogPath({ userData, daemonHome }), "workspace app log");
       await page.waitForFunction(
         () => location.pathname.includes("/plugin/workspaces-bridge/surface/main"),
         undefined,

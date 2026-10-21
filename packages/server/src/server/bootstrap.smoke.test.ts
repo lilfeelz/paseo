@@ -193,6 +193,11 @@ describe("paseo daemon bootstrap", () => {
         appVersion: "0.4.0",
       });
       await client.connect();
+      await expect(
+        probeWebSocketConnection(`ws://127.0.0.1:${target.port}/ws`, {
+          origin: "paseows://app",
+        }),
+      ).resolves.toEqual({ status: "connected" });
 
       proxyUpstream = http.createServer((req, res) => {
         res.end(String(req.headers["x-forwarded-proto"] ?? "missing"));
