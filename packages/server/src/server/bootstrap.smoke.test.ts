@@ -195,7 +195,7 @@ describe("paseo daemon bootstrap", () => {
       await client.connect();
       await expect(
         probeWebSocketConnection(`ws://127.0.0.1:${target.port}/ws`, {
-          origin: "paseows://app",
+          origin: "paseo://app",
         }),
       ).resolves.toEqual({ status: "connected" });
 

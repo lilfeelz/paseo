@@ -739,7 +739,6 @@ export async function createPaseoDaemon(
   const fixedAllowedOrigins = [
     // Packaged desktop renderers use these custom protocol schemes.
     "paseo://app",
-    "paseows://app",
     // For TCP, add localhost variants
     ...(listenTarget.type === "tcp"
       ? [

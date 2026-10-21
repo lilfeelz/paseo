@@ -106,7 +106,6 @@ import { BrowserKeyboard } from "./features/browser-keyboard/index.js";
 import { installAppUpdateOnQuit } from "./features/auto-updater.js";
 import {
   buildAgentDeepLinkRoute,
-  parseAgentDeepLink,
   type AgentDeepLinkTarget,
 } from "@getpaseo/protocol/agent-deep-link";
 import { AgentNavigationInbox, parseAgentDeepLinkFromArgv } from "./agent-navigation.js";
@@ -116,6 +115,7 @@ const WORKSPACES_BRANDED =
   process.env.PASEO_WORKSPACES_BRANDED === "1" ||
   (app.isPackaged && process.execPath.includes(`${path.sep}Paseo Workspaces.app${path.sep}`));
 const APP_SCHEME = WORKSPACES_BRANDED ? "paseows" : "paseo";
+const APP_CONTENT_SCHEME = "paseo";
 const PASEO_DEBUG = process.env.PASEO_DEBUG === "1";
 const DISABLE_SINGLE_INSTANCE_LOCK = process.env.PASEO_DISABLE_SINGLE_INSTANCE_LOCK === "1";
 const APP_NAME =
@@ -367,7 +367,9 @@ let pendingOpenProjectPath = parseOpenProjectPathFromArgv({
   argv: process.argv,
   isDefaultApp: process.defaultApp,
 });
-let pendingAgentNavigation = parseAgentDeepLinkFromArgv(process.argv);
+const agentDeepLinkSchemeAlias: [string, string] | undefined =
+  APP_SCHEME === APP_CONTENT_SCHEME ? undefined : [APP_SCHEME, APP_CONTENT_SCHEME];
+let pendingAgentNavigation = parseAgentDeepLinkFromArgv(process.argv, agentDeepLinkSchemeAlias);
 
 // Each window pulls its own pending open-project path on mount, keyed by
 // webContents id, so deep-linked windows (second-instance launches, the
@@ -564,12 +566,12 @@ ipcMain.handle("paseo:browser:copy-element", (_event, payload: unknown) =>
   browserCapture.copy(payload),
 );
 
-protocol.registerSchemesAsPrivileged([
-  {
-    scheme: APP_SCHEME,
+protocol.registerSchemesAsPrivileged(
+  [...new Set([APP_CONTENT_SCHEME, APP_SCHEME])].map((scheme) => ({
+    scheme,
     privileges: { standard: true, secure: true, supportFetchAPI: true },
-  },
-]);
+  })),
+);
 
 // ---------------------------------------------------------------------------
 // Window creation
@@ -798,7 +800,7 @@ async function createWindow(
     return mainWindow;
   }
 
-  await mainWindow.loadURL(`${APP_SCHEME}://app${options.initialRoute ?? "/"}`);
+  await mainWindow.loadURL(`${APP_CONTENT_SCHEME}://app${options.initialRoute ?? "/"}`);
   return mainWindow;
 }
 
@@ -841,7 +843,7 @@ desktopWindowOwner = createDesktopWindowOwner<AgentDeepLinkTarget>({
 // ---------------------------------------------------------------------------
 
 function receiveAgentDeepLink(input: string): void {
-  const target = parseAgentDeepLink(input);
+  const target = parseAgentDeepLinkFromArgv([input], agentDeepLinkSchemeAlias);
   if (!target) {
     return;
   }
@@ -884,7 +886,7 @@ function setupSingleInstanceLock(): boolean {
   }
 
   app.on("second-instance", (_event, commandLine) => {
-    const agentTarget = parseAgentDeepLinkFromArgv(commandLine);
+    const agentTarget = parseAgentDeepLinkFromArgv(commandLine, agentDeepLinkSchemeAlias);
     if (agentTarget) {
       void bootstrapComplete
         .then(() => desktopWindowOwner.openOrFocusAgent(agentTarget))
@@ -937,7 +939,7 @@ async function bootstrap(): Promise<void> {
   await app.whenReady();
 
   const appDistDir = getAppDistDir();
-  protocol.handle(APP_SCHEME, (request) => {
+  const serveAppContent = (request: Request) => {
     const { pathname, search, hash } = new URL(request.url);
     const decodedPath = decodeURIComponent(pathname);
 
@@ -945,7 +947,7 @@ async function bootstrap(): Promise<void> {
     // Canonicalize it back to the route URL so Expo Router sees `/`, not `/index.html`.
     if (decodedPath.endsWith("/index.html")) {
       const normalizedPath = decodedPath.slice(0, -"/index.html".length) || "/";
-      return Response.redirect(`${APP_SCHEME}://app${normalizedPath}${search}${hash}`, 307);
+      return Response.redirect(`${APP_CONTENT_SCHEME}://app${normalizedPath}${search}${hash}`, 307);
     }
 
     const filePath = path.join(appDistDir, decodedPath);
@@ -961,7 +963,17 @@ async function bootstrap(): Promise<void> {
     }
 
     return net.fetch(pathToFileURL(filePath).toString());
-  });
+  };
+  protocol.handle(APP_CONTENT_SCHEME, serveAppContent);
+  if (APP_SCHEME !== APP_CONTENT_SCHEME) {
+    protocol.handle(APP_SCHEME, (request) => {
+      const url = new URL(request.url);
+      return Response.redirect(
+        `${APP_CONTENT_SCHEME}://app${url.pathname}${url.search}${url.hash}`,
+        307,
+      );
+    });
+  }
 
   await applyAppIcon();
   setupApplicationMenu({

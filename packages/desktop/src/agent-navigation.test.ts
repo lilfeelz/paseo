@@ -12,6 +12,12 @@ describe("desktop agent navigation", () => {
     ).toEqual({ serverId: "server-1", agentId: "agent-2" });
   });
 
+  it("accepts the branded app scheme as an alias for agent deep links", () => {
+    expect(
+      parseAgentDeepLinkFromArgv(["paseows://h/server-1/agent/agent-2"], ["paseows", "paseo"]),
+    ).toEqual({ serverId: "server-1", agentId: "agent-2" });
+  });
+
   it("holds navigation until the existing renderer is ready", () => {
     const inbox = new AgentNavigationInbox();
     const target = { serverId: "server-1", agentId: "agent-2" };
@@ -27,7 +33,10 @@ describe("desktop agent navigation", () => {
     inbox.deliverOrQueue(7, { serverId: "server-1", agentId: "agent-1" });
     inbox.deliverOrQueue(7, { serverId: "server-1", agentId: "agent-2" });
 
-    expect(inbox.windowReady(7)).toEqual({ serverId: "server-1", agentId: "agent-2" });
+    expect(inbox.windowReady(7)).toEqual({
+      serverId: "server-1",
+      agentId: "agent-2",
+    });
     expect(inbox.windowReady(7)).toBeNull();
   });
 });

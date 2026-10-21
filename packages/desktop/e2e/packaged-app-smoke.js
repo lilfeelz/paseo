@@ -10,7 +10,7 @@ const { WebSocket } = require("ws");
 const assert = require("node:assert/strict");
 
 const EXECUTABLE_NAME = process.env.PASEO_WORKSPACES_BRANDED === "1" ? "Paseo Workspaces" : "Paseo";
-const APP_SCHEME = process.env.PASEO_WORKSPACES_BRANDED === "1" ? "paseows" : "paseo";
+const APP_SCHEME = "paseo";
 const SMOKE_TIMEOUT_MS = 60_000;
 const EXIT_TIMEOUT_MS = 10_000;
 const TERMINAL_CAPTURE_ATTEMPTS = 20;

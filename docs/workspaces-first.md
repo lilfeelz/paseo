@@ -71,11 +71,13 @@ workspaces. The UI mode hides most Paseo navigation but leaves upstream modules 
 
 The arm64 build is produced by the `Paseo Workspaces desktop` GitHub Actions workflow on a macOS
 runner after pushing a `paseo-workspaces-build-*` tag and uploaded as a short-lived artifact. It is unsigned and unnotarized; macOS may require
-opening it from Finder's context menu. The app name, bundle ID, URL scheme, and Electron user-data
-directory are separate from Paseo (`Paseo Workspaces`, `org.lilfeelz.paseo-workspaces`, `paseows`,
-and `~/Library/Application Support/Paseo Workspaces`) so it can be installed side-by-side. It still
-uses Paseo's normal `~/.paseo` daemon home unless `PASEO_HOME` is configured, so point it at the
-existing host daemon rather than starting a second daemon on the same port.
+opening it from Finder's context menu. The app name, bundle ID, external URL scheme, and Electron
+user-data directory are separate from Paseo (`Paseo Workspaces`, `org.lilfeelz.paseo-workspaces`,
+`paseows`, and `~/Library/Application Support/Paseo Workspaces`) so it can be installed side-by-side.
+Its bundled renderer uses the compatible `paseo://app` origin to connect to existing Paseo daemons,
+while `paseows` links open this app. It uses Paseo's normal `~/.paseo` daemon home unless
+`PASEO_HOME` is configured, so it can reuse the existing host daemon without starting a second one
+on the same port.
 
 To install manually, download the `paseo-workspaces-macos-arm64` artifact, open the DMG, and drag
 `Paseo Workspaces.app` to Applications. On book, keep the existing Paseo app. Pair this app through
