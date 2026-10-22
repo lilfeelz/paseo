@@ -50,10 +50,21 @@ describe("usePluginHostNavigation", () => {
 
     act(() => result.current.openAgent({ agentId: "agent-2" }));
     act(() => result.current.openWorkspace({ workspaceId: "workspace-2" }));
+    act(() =>
+      result.current.openWorkspace({
+        workspaceId: "workspace-3",
+        target: { kind: "terminal", terminalId: "terminal-3" },
+      }),
+    );
     expect(navigateToAgentMock).toHaveBeenCalledWith({ serverId: "host-2", agentId: "agent-2" });
     expect(navigateToWorkspaceMock).toHaveBeenCalledWith({
       serverId: "host-2",
       workspaceId: "workspace-2",
+    });
+    expect(navigateToWorkspaceMock).toHaveBeenCalledWith({
+      serverId: "host-2",
+      workspaceId: "workspace-3",
+      target: { kind: "terminal", terminalId: "terminal-3" },
     });
   });
 });

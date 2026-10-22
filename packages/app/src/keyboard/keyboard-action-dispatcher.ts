@@ -4,6 +4,8 @@ export type WorkspacePanelTarget = "changes" | "files" | "pull-request";
 export type WorkspacePanelPlacement = "supporting" | "side-pane" | "focused-pane";
 
 export type KeyboardActionId =
+  | "workspaces.overlay.open"
+  | "hosts.overlay.open"
   | "agent.interrupt"
   | "message-input.focus"
   | "message-input.send"
@@ -57,6 +59,8 @@ export type KeyboardActionId =
   | "workspace.setup.show";
 
 export type KeyboardActionDefinition =
+  | { id: "workspaces.overlay.open"; scope: KeyboardActionScope }
+  | { id: "hosts.overlay.open"; scope: KeyboardActionScope }
   | { id: "agent.interrupt"; scope: KeyboardActionScope }
   | { id: "message-input.focus"; scope: KeyboardActionScope }
   | { id: "message-input.send"; scope: KeyboardActionScope }

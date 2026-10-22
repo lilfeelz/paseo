@@ -26,6 +26,7 @@ import {
 import { useHosts } from "@/runtime/host-runtime";
 import { orderHostsLocalFirst, type HostProfile } from "@/types/host-connection";
 import { buildSettingsAddHostRoute } from "@/utils/host-routes";
+import { scoreHostQuery } from "./host-chooser-search";
 
 type HostFilter = (host: HostProfile) => boolean;
 type HostChoiceHandler = (serverId: string) => void | Promise<void>;
@@ -59,15 +60,6 @@ const useHostChooserStore = create<HostChooserState>((set) => ({
   },
   close: () => set({ request: null }),
 }));
-
-function matchesHostQuery(host: HostProfile, query: string): boolean {
-  const normalized = query.trim().toLowerCase();
-  if (!normalized) return true;
-  return (
-    host.label.toLowerCase().includes(normalized) ||
-    host.serverId.toLowerCase().includes(normalized)
-  );
-}
 
 export function useHostChooser() {
   const hosts = useHosts();
@@ -163,7 +155,12 @@ export function HostChooserModal() {
   }, [hosts, request]);
 
   const options = useMemo(
-    () => requestHosts.filter((host) => matchesHostQuery(host, query)),
+    () =>
+      requestHosts
+        .map((host, index) => ({ host, index, score: scoreHostQuery(host, query) }))
+        .filter((result) => result.score !== null)
+        .sort((left, right) => (right.score ?? 0) - (left.score ?? 0) || left.index - right.index)
+        .map(({ host }) => host),
     [query, requestHosts],
   );
   const activeOptionIndex = options.length === 0 ? 0 : Math.min(activeIndex, options.length - 1);

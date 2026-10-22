@@ -44,7 +44,10 @@ interface PluginNavigableHostProps extends PluginHostProps {
     readonly openWorkspace: (input: {
       readonly workspaceId: string;
       readonly serverId?: string;
+      /** Focus this terminal after opening the workspace. */
+      readonly target?: { readonly kind: "terminal"; readonly terminalId: string };
     }) => void;
+    readonly close?: () => void;
   };
 }
 

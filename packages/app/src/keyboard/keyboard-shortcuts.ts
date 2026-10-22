@@ -11,6 +11,7 @@ import {
   type KeyCombo,
   parseChordString,
 } from "@/keyboard/shortcut-string";
+import { isWorkspacesOnlyBuild } from "@/constants/workspaces-only";
 
 export type { KeyCombo } from "@/keyboard/shortcut-string";
 
@@ -77,6 +78,7 @@ interface ShortcutWhen {
   terminal?: false;
   /** false = disabled when command center is open */
   commandCenter?: false;
+  workspacesOnly?: boolean;
   /** Allowed focus scope or scopes */
   focusScope?: KeyboardFocusScope | readonly KeyboardFocusScope[];
 }
@@ -1116,7 +1118,33 @@ const SHORTCUT_BINDINGS: readonly ShortcutBinding[] = [
     id: "message-input-dictation-toggle-cmd-d-mac",
     action: "message-input.action",
     combo: "Cmd+D",
-    when: { mac: true, commandCenter: false, terminal: false },
+    when: { mac: true, commandCenter: false, terminal: false, workspacesOnly: false },
+    payload: { type: "message-input", kind: "dictation-toggle" },
+    help: {
+      id: "dictation-toggle",
+      section: "agent-input",
+      label: "Start/stop dictation",
+    },
+  },
+  {
+    id: "workspaces-overlay-cmd-g-mac",
+    action: "workspaces.overlay.open",
+    combo: "Cmd+G",
+    when: { mac: true, commandCenter: false, workspacesOnly: true },
+    help: { id: "workspaces-overlay", section: "workspaces", label: "Choose workspace" },
+  },
+  {
+    id: "hosts-overlay-cmd-d-mac",
+    action: "hosts.overlay.open",
+    combo: "Cmd+D",
+    when: { mac: true, commandCenter: false, workspacesOnly: true },
+    help: { id: "hosts-overlay", section: "general", label: "Choose host" },
+  },
+  {
+    id: "message-input-dictation-toggle-cmd-alt-shift-d-workspaces-mac",
+    action: "message-input.action",
+    combo: "Cmd+Alt+Shift+D",
+    when: { mac: true, commandCenter: false, terminal: false, workspacesOnly: true },
     payload: { type: "message-input", kind: "dictation-toggle" },
     help: {
       id: "dictation-toggle",
@@ -1343,6 +1371,9 @@ export function matchesKeyboardShortcutContext(
   context: KeyboardShortcutContext,
 ): boolean {
   if (!when) return true;
+  if (when.workspacesOnly !== undefined && when.workspacesOnly !== isWorkspacesOnlyBuild) {
+    return false;
+  }
   if (when.mac !== undefined && when.mac !== context.isMac) return false;
   if (when.desktop !== undefined && when.desktop !== context.isDesktop) return false;
   if (
@@ -1410,6 +1441,9 @@ function helpMatchesPlatform(
 ): boolean {
   if (when?.mac !== undefined && when.mac !== context.isMac) return false;
   if (when?.desktop !== undefined && when.desktop !== context.isDesktop) return false;
+  if (when?.workspacesOnly !== undefined && when.workspacesOnly !== isWorkspacesOnlyBuild) {
+    return false;
+  }
   return true;
 }
 

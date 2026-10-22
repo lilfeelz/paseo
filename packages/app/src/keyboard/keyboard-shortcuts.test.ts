@@ -134,6 +134,24 @@ interface HelpSectionCase {
 }
 
 describe("keyboard-shortcuts", () => {
+  it("reserves Cmd-G and Cmd-D for the branded workspace and host overlays", () => {
+    const workspacePicker = DEFAULT_BINDINGS.find(
+      (binding) => binding.id === "workspaces-overlay-cmd-g-mac",
+    );
+    const hostPicker = DEFAULT_BINDINGS.find((binding) => binding.id === "hosts-overlay-cmd-d-mac");
+
+    expect(workspacePicker).toMatchObject({
+      action: "workspaces.overlay.open",
+      combo: "Cmd+G",
+      when: { workspacesOnly: true },
+    });
+    expect(hostPicker).toMatchObject({
+      action: "hosts.overlay.open",
+      combo: "Cmd+D",
+      when: { workspacesOnly: true },
+    });
+  });
+
   const matchingCases: MatchingShortcutCase[] = [
     {
       name: "matches Cmd+O to open project",

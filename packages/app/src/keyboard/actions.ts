@@ -17,6 +17,8 @@ export type MessageInputKeyboardActionKind =
   | "mode-cycle";
 
 export type KeyboardActionId =
+  | "workspaces.overlay.open"
+  | "hosts.overlay.open"
   | "agent.interrupt"
   | "agent.new"
   | "workspace.tab.menu.open"
