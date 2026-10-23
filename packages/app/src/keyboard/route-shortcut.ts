@@ -1,6 +1,7 @@
 import type { KeyboardShortcutPayload, MessageInputKeyboardActionKind } from "@/keyboard/actions";
 import type { KeyboardActionDefinition } from "@/keyboard/keyboard-action-dispatcher";
 import { buildSettingsRoute, parseHostWorkspaceRouteFromPathname } from "@/utils/host-routes";
+import { isWorkspacesOnlyBuild } from "@/constants/workspaces-only";
 import {
   getRelativeSidebarShortcutTarget,
   type SidebarShortcutWorkspaceTarget,
@@ -41,6 +42,10 @@ const NONE: ShortcutAction = { kind: "none" };
 const PASSTHROUGH_DISPATCH: Record<string, KeyboardActionDefinition> = {
   "workspaces.overlay.open": { id: "workspaces.overlay.open", scope: "global" },
   "hosts.overlay.open": { id: "hosts.overlay.open", scope: "global" },
+  "workspace.previous": { id: "workspace.previous", scope: "global" },
+  "workspace.project.list": { id: "workspace.project.list", scope: "global" },
+  "sessions.list": { id: "sessions.list", scope: "global" },
+  "agent.mode.open": { id: "agent.mode.open", scope: "message-input" },
   "agent.interrupt": { id: "agent.interrupt", scope: "global" },
   "workspace.tab.menu.open": { id: "workspace.tab.menu.open", scope: "workspace" },
   "workspace.tab.target.agent": { id: "workspace.tab.target.agent", scope: "workspace" },
@@ -164,6 +169,12 @@ function routeMessageInputAction(payload: KeyboardShortcutPayload): ShortcutActi
 }
 
 function routeSettingsToggle(ctx: ShortcutRoutingContext): ShortcutAction {
+  if (isWorkspacesOnlyBuild) {
+    if (!ctx.pathname.startsWith("/settings")) {
+      return { kind: "router-push", route: "/settings/shortcuts" };
+    }
+    return { kind: "navigate-last-workspace" };
+  }
   if (!ctx.pathname.startsWith("/settings")) {
     return { kind: "router-push", route: buildSettingsRoute() };
   }

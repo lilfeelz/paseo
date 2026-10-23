@@ -1,7 +1,7 @@
 # Workspaces-first Paseo
 
 This fork adds the workspace workflow used by `lilfeelz/workspaces` as a first-party Paseo plugin.
-The Workspaces sidebar item reads workspace names and active zmx sessions through `ws list`, resolves
+The Workspaces screen reads workspace names and active zmx sessions through `ws list`, resolves
 their canonical directories through `ws dir`, then opens that directory in Paseo and starts
 `ws surface <directory>` in its terminal. `ws` remains the source of truth for workspace names and
 directories; zmx remains the source of truth for persistent panes.
@@ -26,9 +26,11 @@ Run the workspace-first client with:
 npm run dev:app:workspaces
 ```
 
-This opens the Workspaces screen after host startup and keeps only its sidebar entry, Hosts, and
-Settings. Use Hosts to pair a daemon and Settings to change connection preferences. The standard
-Paseo client remains available through `npm run dev:app`.
+This opens the Workspaces screen after host startup without a left sidebar. Use Cmd-G to fuzzy-pick
+all workspaces, Cmd-D to choose a host, Cmd-S to open Paseo's sessions screen, Cmd-Shift-S to list
+checkouts for the current project, and Cmd-Z to return to the previous workspace. Project grouping comes from
+`~/Workspaces/<context>/<project>` paths and combines the main checkout with its `.tree/worktrees`
+checkouts. The standard Paseo client remains available through `npm run dev:app`.
 
 ```sh
 npm ci

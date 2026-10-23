@@ -10,8 +10,10 @@ export function resolveDesktopSidebarVisibility(input: {
   isMounted: boolean;
   isOpen: boolean;
   canShare: boolean;
+  hideSidebar?: boolean;
 }): boolean {
   return (
+    !input.hideSidebar &&
     input.chromeEnabled &&
     !input.isCompactLayout &&
     input.isMounted &&
@@ -24,10 +26,11 @@ export function resolveDesktopAppChromeLayout(input: {
   desktopSidebarRendered: boolean;
   hasTopLeftWindowControls: boolean;
   sidebarControlsEnabled: boolean;
+  hideSidebarControls?: boolean;
 }) {
   const sidebarOwnsTopLeft = input.desktopSidebarRendered && input.hasTopLeftWindowControls;
   let sidebarToggleOwner: "none" | "window" | "content" = "none";
-  if (input.sidebarControlsEnabled) {
+  if (input.sidebarControlsEnabled && !input.hideSidebarControls) {
     sidebarToggleOwner = input.hasTopLeftWindowControls ? "window" : "content";
   }
   return {

@@ -39,6 +39,7 @@ import { ChangelogHost } from "@/changelog";
 import { AppDiagnosticHost } from "@/components/app-diagnostic-host";
 import { AppearanceStyleBoundary } from "@/components/appearance-style-boundary";
 import { LeftSidebar } from "@/components/left-sidebar";
+import { isWorkspacesOnlyBuild } from "@/constants/workspaces-only";
 import { WindowSidebarMenuToggle } from "@/components/headers/sidebar-menu-toggle";
 import { DesktopWindowControls } from "@/components/desktop/window-controls";
 import { SidebarModelProvider } from "@/components/sidebar/sidebar-model";
@@ -542,12 +543,14 @@ function AppContainer({ children, chromeEnabled: chromeEnabledOverride }: AppCon
       requestedSidebarWidth: sidebarWidth,
       viewportWidth,
     }),
+    hideSidebar: isWorkspacesOnlyBuild,
   });
   const hasTopLeftWindowControls = useHasWindowChromeObstruction("top-left");
   const appChromeLayout = resolveDesktopAppChromeLayout({
     desktopSidebarRendered: desktopSidebarVisible,
     hasTopLeftWindowControls,
     sidebarControlsEnabled: chromeEnabled && !isWorkspaceFocusModeEnabled,
+    hideSidebarControls: isWorkspacesOnlyBuild,
   });
   const sidebarChrome = (
     <SidebarChrome

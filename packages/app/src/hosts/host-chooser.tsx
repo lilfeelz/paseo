@@ -141,6 +141,7 @@ export function HostChooserModal() {
   const request = useHostChooserStore((state) => state.request);
   const close = useHostChooserStore((state) => state.close);
   const inputRef = useRef<EditingTextInputHandle>(null);
+  const resultsRef = useRef<ScrollView>(null);
   const [query, setQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
   const modalLayer = useGlobalWebOverlayLayer("modal", isWeb && request != null);
@@ -163,7 +164,13 @@ export function HostChooserModal() {
         .map(({ host }) => host),
     [query, requestHosts],
   );
-  const activeOptionIndex = options.length === 0 ? 0 : Math.min(activeIndex, options.length - 1);
+  const activeOptionIndex = options.length === 0 ? -1 : Math.min(activeIndex, options.length - 1);
+
+  useEffect(() => {
+    if (activeOptionIndex >= 0) {
+      resultsRef.current?.scrollTo({ y: activeOptionIndex * 56, animated: true });
+    }
+  }, [activeOptionIndex]);
 
   useEffect(() => {
     if (!request) return;
@@ -179,6 +186,14 @@ export function HostChooserModal() {
     setActiveIndex(0);
   }, []);
 
+  useEffect(() => {
+    if (options.length === 0) {
+      setActiveIndex(0);
+      return;
+    }
+    setActiveIndex((index) => Math.min(index, options.length - 1));
+  }, [options.length]);
+
   const chooseHost = useCallback(
     (serverId: string) => {
       const currentRequest = request;
@@ -191,12 +206,7 @@ export function HostChooserModal() {
 
   const handleWebOverlayKeyDown = useCallback(
     (event: KeyboardEvent) => {
-      if (
-        event.key !== "ArrowDown" &&
-        event.key !== "ArrowUp" &&
-        event.key !== "Enter" &&
-        event.key !== "Escape"
-      ) {
+      if (event.key !== "Enter" && event.key !== "Escape") {
         return false;
       }
 
@@ -214,21 +224,22 @@ export function HostChooserModal() {
         return true;
       }
 
-      if (options.length === 0) return false;
-      event.preventDefault();
-      const next = event.key === "ArrowDown" ? activeOptionIndex + 1 : activeOptionIndex - 1;
-      if (next < 0) {
-        setActiveIndex(options.length - 1);
-        return true;
-      }
-      if (next >= options.length) {
-        setActiveIndex(0);
-        return true;
-      }
-      setActiveIndex(next);
-      return true;
+      return false;
     },
     [activeOptionIndex, chooseHost, close, options],
+  );
+  const handleSearchKeyPress = useCallback(
+    (event: { nativeEvent?: { key?: string } }) => {
+      const key = event.nativeEvent?.key;
+      if ((key !== "ArrowDown" && key !== "ArrowUp") || options.length === 0) return;
+      setActiveIndex((index) => {
+        const current = Math.min(index, options.length - 1);
+        return key === "ArrowDown"
+          ? (current + 1) % options.length
+          : (current - 1 + options.length) % options.length;
+      });
+    },
+    [options.length],
   );
   const setWebOverlayScope = useWebOverlayRegistration({
     active: isWeb && request != null,
@@ -249,6 +260,7 @@ export function HostChooserModal() {
               ref={inputRef}
               initialValue={query}
               onChangeText={handleQueryChange}
+              onKeyPress={handleSearchKeyPress}
               placeholder="Search hosts..."
               placeholderTextColor={theme.colors.foregroundMuted}
               style={styles.input}
@@ -258,6 +270,7 @@ export function HostChooserModal() {
             />
           </View>
           <ScrollView
+            ref={resultsRef}
             style={styles.results}
             contentContainerStyle={styles.resultsContent}
             keyboardShouldPersistTaps="always"

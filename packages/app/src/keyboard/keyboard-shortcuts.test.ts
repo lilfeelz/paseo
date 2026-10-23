@@ -152,6 +152,37 @@ describe("keyboard-shortcuts", () => {
     });
   });
 
+  it("reserves Cmd-Z, Cmd-S, and Cmd-Shift-S for workspace navigation", () => {
+    expect(
+      DEFAULT_BINDINGS.find((binding) => binding.id === "workspace-previous-cmd-z-mac"),
+    ).toMatchObject({
+      action: "workspace.previous",
+      combo: "Cmd+Z",
+      when: { workspacesOnly: true },
+    });
+    expect(
+      DEFAULT_BINDINGS.find((binding) => binding.id === "workspace-project-list-cmd-s-mac"),
+    ).toMatchObject({
+      action: "workspace.project.list",
+      combo: "Cmd+Shift+S",
+      when: { workspacesOnly: true },
+    });
+    expect(
+      DEFAULT_BINDINGS.find((binding) => binding.id === "sessions-list-cmd-s-mac"),
+    ).toMatchObject({
+      action: "sessions.list",
+      combo: "Cmd+S",
+      when: { workspacesOnly: true },
+    });
+    expect(
+      DEFAULT_BINDINGS.find((binding) => binding.id === "workspace-previous-cmd-z-mac")?.help?.id,
+    ).toBe("workspace-prev");
+    expect(
+      DEFAULT_BINDINGS.find((binding) => binding.id === "workspace-navigate-relative-cmd-left-mac")
+        ?.when,
+    ).toMatchObject({ workspacesOnly: false });
+  });
+
   const matchingCases: MatchingShortcutCase[] = [
     {
       name: "matches Cmd+O to open project",

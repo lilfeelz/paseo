@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { fuzzySearchWorkspaces, parseWorkspaces } from "./workspaces.js";
+import {
+  fuzzySearchWorkspaces,
+  parseWorkspaces,
+  projectKeyFromWorkspacePath,
+} from "./workspaces.js";
 
 describe("parseWorkspaces", () => {
   it("parses workspace names and zmx activity", () => {
@@ -41,5 +45,22 @@ describe("fuzzySearchWorkspaces", () => {
   it("ranks a closer subsequence above an earlier scattered match", () => {
     const entries = [{ name: "acb" }, { name: "aab" }];
     expect(fuzzySearchWorkspaces(entries, "ab").map(({ name }) => name)).toEqual(["aab", "acb"]);
+  });
+
+  it("ranks a closer subsequence above an earlier scattered match", () => {
+    const entries = [{ name: "acb" }, { name: "aab" }];
+    expect(fuzzySearchWorkspaces(entries, "ab").map(({ name }) => name)).toEqual(["aab", "acb"]);
+  });
+});
+
+describe("projectKeyFromWorkspacePath", () => {
+  it("groups the main checkout and its managed worktrees", () => {
+    expect(projectKeyFromWorkspacePath("/Users/j/Workspaces/lilfeelz/paseo")).toBe(
+      "lilfeelz/paseo",
+    );
+    expect(
+      projectKeyFromWorkspacePath("/Users/j/Workspaces/lilfeelz/paseo.tree/worktrees/feature-x"),
+    ).toBe("lilfeelz/paseo");
+    expect(projectKeyFromWorkspacePath("/Users/j/Notes")).toBeNull();
   });
 });

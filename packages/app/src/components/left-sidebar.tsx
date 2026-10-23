@@ -134,7 +134,7 @@ interface DesktopSidebarProps extends SidebarSharedProps {
   active: boolean;
 }
 
-export const LeftSidebar = memo(function LeftSidebar({ active }: { active: boolean }) {
+function LeftSidebarContent({ active }: { active: boolean }) {
   const { theme } = useUnistyles();
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
@@ -290,6 +290,10 @@ export const LeftSidebar = memo(function LeftSidebar({ active }: { active: boole
       {importSessionSheet}
     </>
   );
+}
+
+export const LeftSidebar = memo(function LeftSidebar({ active }: { active: boolean }) {
+  return isWorkspacesOnlyBuild ? null : <LeftSidebarContent active={active} />;
 });
 
 function sidebarHostOptionTestID(serverId: string): string {

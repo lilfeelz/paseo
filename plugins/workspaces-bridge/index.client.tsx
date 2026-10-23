@@ -4,13 +4,11 @@ import {
   usePaseo,
   type PluginClientContext,
   type PluginScreenProps,
-  type PluginSidebarItemProps,
 } from "@getpaseo/plugin/client";
-import { SidebarRow } from "@getpaseo/plugin/client/ui";
 import { useRpc } from "@getpaseo/plugin/client";
 import { Modal, ScrollView, TextInput } from "@getpaseo/plugin/client/react-native";
 import { listWorkspacesRpc } from "./shared/rpc.js";
-import { fuzzySearchWorkspaces } from "./shared/workspaces.js";
+import { fuzzySearchWorkspaces, projectKeyFromWorkspacePath } from "./shared/workspaces.js";
 
 interface WorkspaceEntry {
   name: string;
@@ -23,26 +21,29 @@ function WorkspaceRow({
   entry,
   busy,
   onOpen,
+  selected,
+  onSelect,
   styles,
 }: {
   entry: WorkspaceEntry;
   busy: boolean;
   onOpen: (entry: WorkspaceEntry) => void;
-  styles: { text: object; detail: object; row: object };
+  selected: boolean;
+  onSelect: () => void;
+  styles: { text: object; detail: object; row: object; rowSelected: object };
 }) {
   const open = useCallback(() => onOpen(entry), [entry, onOpen]);
   return (
-    <Pressable accessibilityRole="button" disabled={busy} onPress={open} style={styles.row}>
+    <Pressable
+      accessibilityRole="button"
+      disabled={busy}
+      onHoverIn={onSelect}
+      onPress={open}
+      style={[styles.row, selected && styles.rowSelected]}
+    >
       <Text style={styles.text}>{entry.name}</Text>
       <Text style={styles.detail}>{entry.active ? "Active in zmx" : "No active pane"}</Text>
     </Pressable>
-  );
-}
-
-function WorkspacesItem({ currentScreen, openScreen }: PluginSidebarItemProps) {
-  const open = useCallback(() => openScreen({ screenId: "main" }), [openScreen]);
-  return (
-    <SidebarRow icon="FolderOpen" active={currentScreen?.screenId === "main"} onPress={open} />
   );
 }
 
@@ -53,8 +54,27 @@ function Workspaces({ theme, host, params, navigation }: PluginScreenProps) {
   const [busy, setBusy] = useState("");
   const [entries, setEntries] = useState<WorkspaceEntry[]>([]);
   const [query, setQuery] = useState("");
+  const [activeIndex, setActiveIndex] = useState(0);
   const opening = useRef(false);
-  const filteredEntries = useMemo(() => fuzzySearchWorkspaces(entries, query), [entries, query]);
+  const resultsRef = useRef<import("react-native").ScrollView>(null);
+  const projectEntries = useMemo(
+    () =>
+      params.projectKey
+        ? entries.filter(
+            (entry) => projectKeyFromWorkspacePath(entry.directory) === params.projectKey,
+          )
+        : entries,
+    [entries, params.projectKey],
+  );
+  const filteredEntries = useMemo(
+    () => fuzzySearchWorkspaces(projectEntries, query),
+    [projectEntries, query],
+  );
+  const selectedIndex =
+    filteredEntries.length > 0 ? Math.min(activeIndex, filteredEntries.length - 1) : -1;
+  useEffect(() => {
+    if (selectedIndex >= 0) resultsRef.current?.scrollTo({ y: selectedIndex * 62, animated: true });
+  }, [selectedIndex]);
   const styles = useMemo(
     () => ({
       root: { flex: 1, padding: 16, gap: 12, backgroundColor: theme.colors.surface0 },
@@ -69,6 +89,7 @@ function Workspaces({ theme, host, params, navigation }: PluginScreenProps) {
         backgroundColor: theme.colors.surface1,
         gap: 4,
       },
+      rowSelected: { backgroundColor: theme.colors.surface2 },
       list: { flex: 1, minHeight: 160 },
       listContent: { gap: 6, paddingBottom: 12 },
       search: {
@@ -127,8 +148,21 @@ function Workspaces({ theme, host, params, navigation }: PluginScreenProps) {
     [navigation, paseo],
   );
   const handleSubmit = useCallback(() => {
-    if (busy === "" && filteredEntries[0]) void openEntry(filteredEntries[0]);
-  }, [busy, filteredEntries, openEntry]);
+    if (busy === "" && selectedIndex >= 0) void openEntry(filteredEntries[selectedIndex]!);
+  }, [busy, filteredEntries, openEntry, selectedIndex]);
+  const handleKeyPress = useCallback(
+    (event: { nativeEvent?: { key?: string } }) => {
+      const key = event.nativeEvent?.key;
+      if ((key !== "ArrowDown" && key !== "ArrowUp") || filteredEntries.length === 0) return;
+      setActiveIndex((index) => {
+        const current = Math.min(index, filteredEntries.length - 1);
+        return key === "ArrowDown"
+          ? (current + 1) % filteredEntries.length
+          : (current - 1 + filteredEntries.length) % filteredEntries.length;
+      });
+    },
+    [filteredEntries.length],
+  );
   const handleModalOpenChange = useCallback(
     (isOpen: boolean) => {
       if (!isOpen) navigation?.close?.();
@@ -144,27 +178,34 @@ function Workspaces({ theme, host, params, navigation }: PluginScreenProps) {
       autoFocus={params.overlay === "1"}
       editable={busy === ""}
       onSubmitEditing={handleSubmit}
+      onKeyPress={handleKeyPress}
       placeholder="Search workspaces…"
       placeholderTextColor={theme.colors.foregroundMuted}
       returnKeyType="go"
       value={query}
-      onChangeText={setQuery}
+      onChangeText={(value) => {
+        setQuery(value);
+        setActiveIndex(0);
+      }}
       style={styles.search}
     />
   );
   const results = (
     <ScrollView
+      ref={resultsRef}
       style={styles.list}
       contentContainerStyle={styles.listContent}
       keyboardShouldPersistTaps="handled"
     >
-      {filteredEntries.map((entry) => (
+      {filteredEntries.map((entry, index) => (
         <WorkspaceRow
           key={entry.name}
           entry={entry}
           busy={busy !== ""}
           onOpen={openEntry}
           styles={styles}
+          selected={index === selectedIndex}
+          onSelect={() => setActiveIndex(index)}
         />
       ))}
       {filteredEntries.length === 0 ? (
@@ -182,7 +223,11 @@ function Workspaces({ theme, host, params, navigation }: PluginScreenProps) {
   );
   if (params.overlay === "1") {
     return (
-      <Modal open title="Choose workspace" onOpenChange={handleModalOpenChange}>
+      <Modal
+        open
+        title={params.projectKey ? `Workspaces · ${params.projectKey}` : "Choose workspace"}
+        onOpenChange={handleModalOpenChange}
+      >
         <Modal.Content scrollable={false}>
           <Text style={styles.host}>{host.label}</Text>
           {search}
@@ -213,6 +258,5 @@ function Workspaces({ theme, host, params, navigation }: PluginScreenProps) {
 
 export default function contribute(client: PluginClientContext) {
   client.addScreen({ id: "main", title: "Workspaces", Component: Workspaces });
-  client.addSidebarHeaderItem({ id: "workspaces", title: "Workspaces", Component: WorkspacesItem });
   return () => {};
 }

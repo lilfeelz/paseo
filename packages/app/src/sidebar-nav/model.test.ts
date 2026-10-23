@@ -116,7 +116,7 @@ describe("resolveSidebarNavItems", () => {
 });
 
 describe("resolveWorkspaceOnlyNavItems", () => {
-  it("keeps only the workspace bridge plugin and hides it from the footer", () => {
+  it("hides the redundant workspace bridge sidebar item", () => {
     const headerItems = resolveSidebarNavItems({
       section: "header",
       pluginGroups: [group("workspaces-bridge", "workspaces"), kanban],
@@ -128,9 +128,7 @@ describe("resolveWorkspaceOnlyNavItems", () => {
       preferences: [],
     });
 
-    expect(resolveWorkspaceOnlyNavItems("header", headerItems).map((item) => item.key)).toEqual([
-      pluginSidebarNavKey(group("workspaces-bridge", "workspaces")),
-    ]);
+    expect(resolveWorkspaceOnlyNavItems("header", headerItems)).toEqual([]);
     expect(resolveWorkspaceOnlyNavItems("footer", footerItems)).toEqual([]);
   });
 });

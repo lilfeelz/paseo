@@ -3,6 +3,15 @@ export interface WorkspaceEntry {
   active: boolean;
 }
 
+export function projectKeyFromWorkspacePath(value: string): string | null {
+  const parts = value.replace(/\\/g, "/").split("/").filter(Boolean);
+  const root = parts.lastIndexOf("Workspaces");
+  const context = parts[root + 1];
+  const project = parts[root + 2];
+  if (root < 0 || !context || !project) return null;
+  return `${context}/${project.replace(/\.tree$/, "")}`;
+}
+
 function scoreSubsequence(value: string, query: string): number | null {
   let previousScores = Array<number>(value.length).fill(Number.NEGATIVE_INFINITY);
 
