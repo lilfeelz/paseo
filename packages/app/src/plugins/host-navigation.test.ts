@@ -43,6 +43,21 @@ describe("plugin host navigation", () => {
     ]);
   });
 
+  it("forwards an explicit terminal target when opening a workspace", () => {
+    const { navigation, destinations } = setup();
+    navigation.openWorkspace({
+      workspaceId: "one",
+      target: { kind: "terminal", terminalId: "surface-terminal" },
+    });
+    expect(destinations).toEqual([
+      {
+        serverId: "selected",
+        workspaceId: "one",
+        target: { kind: "terminal", terminalId: "surface-terminal" },
+      },
+    ]);
+  });
+
   it("refuses unknown or removed workspaces before creating browser records", () => {
     const { navigation, destinations, browsers, workspaces } = setup();
     expect(() =>

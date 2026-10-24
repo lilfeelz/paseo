@@ -69,9 +69,20 @@ function SurfaceRenderer({
   theme: PluginTheme;
 }) {
   const navigation = usePluginHostNavigation(host.id);
+  const close = useCallback(() => {
+    if (router.canGoBack()) router.back();
+    else router.replace(`/h/${encodeURIComponent(host.id)}`);
+  }, [host.id]);
+  const pluginNavigation = useMemo(() => ({ ...navigation, close }), [close, navigation]);
   return (
     <PluginInstallationProvider plugin={plugin}>
-      <Surface theme={theme} host={host} layout={layout} navigation={navigation} params={params} />
+      <Surface
+        theme={theme}
+        host={host}
+        layout={layout}
+        navigation={pluginNavigation}
+        params={params}
+      />
     </PluginInstallationProvider>
   );
 }

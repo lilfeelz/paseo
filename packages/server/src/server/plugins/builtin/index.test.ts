@@ -52,6 +52,10 @@ test("listed built-ins resolve to matching manifests and compile", async () => {
       client: await findEntry(["index.client.ts", "index.client.tsx"]),
     });
     expect(bundles.serverBundle).toBeTruthy();
+    if (id === "workspaces-bridge") {
+      expect(bundles.serverBundle).toContain("workspaces.list");
+      expect(bundles.clientBundle).toContain("Workspaces");
+    }
   }
 });
 

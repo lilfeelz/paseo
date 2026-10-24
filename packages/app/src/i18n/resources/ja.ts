@@ -2449,6 +2449,7 @@ export const ja: TranslationResources = {
         jumpToTab: "タブにジャンプ",
         previousWorkspace: "前のワークスペース",
         nextWorkspace: "次のワークスペース",
+        projectWorkspaces: "現在のプロジェクトのワークスペース",
         previousTab: "前のタブ",
         nextTab: "次のタブ",
         splitPaneRight: "右にペインを分割",

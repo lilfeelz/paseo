@@ -11,6 +11,7 @@ import {
   type KeyCombo,
   parseChordString,
 } from "@/keyboard/shortcut-string";
+import { isWorkspacesOnlyBuild } from "@/constants/workspaces-only";
 
 export type { KeyCombo } from "@/keyboard/shortcut-string";
 
@@ -77,6 +78,7 @@ interface ShortcutWhen {
   terminal?: false;
   /** false = disabled when command center is open */
   commandCenter?: false;
+  workspacesOnly?: boolean;
   /** Allowed focus scope or scopes */
   focusScope?: KeyboardFocusScope | readonly KeyboardFocusScope[];
 }
@@ -167,6 +169,8 @@ export const SHORTCUT_HELP_ROW_ORDER: Record<ShortcutSectionId, readonly string[
     "workspace-jump-index",
     "workspace-prev",
     "workspace-next",
+    "workspace-project-list",
+    "sessions-list",
     "pin-workspace",
     "archive-workspace",
   ],
@@ -197,6 +201,7 @@ export const SHORTCUT_HELP_ROW_ORDER: Record<ShortcutSectionId, readonly string[
   "agent-input": [
     "focus-message-input",
     "cycle-agent-mode",
+    "agent-permissions",
     "voice-toggle",
     "dictation-toggle",
     "agent-interrupt",
@@ -219,6 +224,8 @@ const SHORTCUT_HELP_LABEL_KEYS: Record<string, string> = {
   "workspace-tab-jump-index": "settings.shortcuts.help.jumpToTab",
   "workspace-prev": "settings.shortcuts.help.previousWorkspace",
   "workspace-next": "settings.shortcuts.help.nextWorkspace",
+  "workspace-project-list": "settings.shortcuts.help.projectWorkspaces",
+  "sessions-list": "sessions.title",
   "workspace-tab-prev": "settings.shortcuts.help.previousTab",
   "workspace-tab-next": "settings.shortcuts.help.nextTab",
   "workspace-pane-split-right": "settings.shortcuts.help.splitPaneRight",
@@ -244,6 +251,7 @@ const SHORTCUT_HELP_LABEL_KEYS: Record<string, string> = {
   "cycle-theme": "settings.shortcuts.help.cycleTheme",
   "focus-message-input": "settings.shortcuts.help.focusMessageInput",
   "cycle-agent-mode": "settings.shortcuts.help.cycleAgentMode",
+  "agent-permissions": "agentControls.mode.title",
   "voice-toggle": "settings.shortcuts.help.toggleVoiceMode",
   "dictation-toggle": "settings.shortcuts.help.startStopDictation",
   "agent-interrupt": "settings.shortcuts.help.interruptAgent",
@@ -619,7 +627,7 @@ const SHORTCUT_BINDINGS: readonly ShortcutBinding[] = [
     id: "workspace-navigate-relative-cmd-left-mac",
     action: "workspace.navigate.relative",
     combo: "Cmd+[",
-    when: { mac: true, desktop: true, commandCenter: false },
+    when: { mac: true, desktop: true, commandCenter: false, workspacesOnly: false },
     payload: { type: "delta", delta: -1 },
     help: {
       id: "workspace-prev",
@@ -1116,7 +1124,61 @@ const SHORTCUT_BINDINGS: readonly ShortcutBinding[] = [
     id: "message-input-dictation-toggle-cmd-d-mac",
     action: "message-input.action",
     combo: "Cmd+D",
-    when: { mac: true, commandCenter: false, terminal: false },
+    when: { mac: true, commandCenter: false, terminal: false, workspacesOnly: false },
+    payload: { type: "message-input", kind: "dictation-toggle" },
+    help: {
+      id: "dictation-toggle",
+      section: "agent-input",
+      label: "Start/stop dictation",
+    },
+  },
+  {
+    id: "workspaces-overlay-cmd-g-mac",
+    action: "workspaces.overlay.open",
+    combo: "Cmd+G",
+    when: { mac: true, commandCenter: false, workspacesOnly: true },
+    help: { id: "workspaces-overlay", section: "workspaces", label: "Choose workspace" },
+  },
+  {
+    id: "hosts-overlay-cmd-d-mac",
+    action: "hosts.overlay.open",
+    combo: "Cmd+D",
+    when: { mac: true, commandCenter: false, workspacesOnly: true },
+    help: { id: "hosts-overlay", section: "general", label: "Choose host" },
+  },
+  {
+    id: "workspace-previous-cmd-z-mac",
+    action: "workspace.previous",
+    combo: "Cmd+Z",
+    when: { mac: true, commandCenter: false, workspacesOnly: true },
+    help: { id: "workspace-prev", section: "workspaces", label: "Previous workspace" },
+  },
+  {
+    id: "workspace-project-list-cmd-s-mac",
+    action: "workspace.project.list",
+    combo: "Cmd+S",
+    when: { mac: true, commandCenter: false, workspacesOnly: true },
+    help: { id: "workspace-project-list", section: "workspaces", label: "Project workspaces" },
+  },
+  {
+    id: "sessions-list-cmd-shift-s-mac",
+    action: "sessions.list",
+    combo: "Cmd+Shift+S",
+    when: { mac: true, commandCenter: false, workspacesOnly: true },
+    help: { id: "sessions-list", section: "workspaces", label: "Sessions" },
+  },
+  {
+    id: "agent-permissions-open-ctrl-x-p-workspaces",
+    action: "agent.mode.open",
+    combo: "Ctrl+X P",
+    when: { workspacesOnly: true, commandCenter: false, terminal: false },
+    help: { id: "agent-permissions", section: "agent-input", label: "Choose permission mode" },
+  },
+  {
+    id: "message-input-dictation-toggle-cmd-alt-shift-d-workspaces-mac",
+    action: "message-input.action",
+    combo: "Cmd+Alt+Shift+D",
+    when: { mac: true, commandCenter: false, terminal: false, workspacesOnly: true },
     payload: { type: "message-input", kind: "dictation-toggle" },
     help: {
       id: "dictation-toggle",
@@ -1343,6 +1405,9 @@ export function matchesKeyboardShortcutContext(
   context: KeyboardShortcutContext,
 ): boolean {
   if (!when) return true;
+  if (when.workspacesOnly !== undefined && when.workspacesOnly !== isWorkspacesOnlyBuild) {
+    return false;
+  }
   if (when.mac !== undefined && when.mac !== context.isMac) return false;
   if (when.desktop !== undefined && when.desktop !== context.isDesktop) return false;
   if (
@@ -1410,6 +1475,9 @@ function helpMatchesPlatform(
 ): boolean {
   if (when?.mac !== undefined && when.mac !== context.isMac) return false;
   if (when?.desktop !== undefined && when.desktop !== context.isDesktop) return false;
+  if (when?.workspacesOnly !== undefined && when.workspacesOnly !== isWorkspacesOnlyBuild) {
+    return false;
+  }
   return true;
 }
 

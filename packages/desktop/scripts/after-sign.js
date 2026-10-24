@@ -2,7 +2,7 @@ const path = require("node:path");
 
 const { smokePackagedDesktopApp } = require("../e2e/packaged-app-smoke.js");
 
-const EXECUTABLE_NAME = "Paseo";
+const APP_BUNDLE_NAME = process.env.PASEO_WORKSPACES_BRANDED === "1" ? "Paseo Workspaces" : "Paseo";
 
 exports.default = async function afterSign(context) {
   if (process.env.PASEO_DESKTOP_SMOKE !== "1") {
@@ -14,6 +14,6 @@ exports.default = async function afterSign(context) {
   }
 
   await smokePackagedDesktopApp({
-    appPath: path.join(context.appOutDir, `${EXECUTABLE_NAME}.app`),
+    appPath: path.join(context.appOutDir, `${APP_BUNDLE_NAME}.app`),
   });
 };

@@ -14,6 +14,7 @@ import { useShortcutKeys } from "@/hooks/use-shortcut-keys";
 import { useKeyboardActionHandler } from "@/hooks/use-keyboard-action-handler";
 import type { KeyboardActionDefinition } from "@/keyboard/keyboard-action-dispatcher";
 import { resolveNextAgentModeId } from "@/composer/agent-controls/mode";
+import { filterAndRankComboboxOptions } from "@/components/ui/combobox-options";
 import { useComposerKeyboardScope } from "@/composer/keyboard-scope";
 import { useComposerControlLayout } from "@/composer/agent-controls/layout-context";
 import { AgentControlTrigger } from "@/composer/agent-controls/control";
@@ -111,8 +112,7 @@ export function AgentModeControl({
   );
   const options = useMemo<ComboboxOption[]>(() => {
     const q = normalizeSearchQuery(searchQuery);
-    if (!q) return allOptions;
-    return allOptions.filter((o) => o.label.toLowerCase().includes(q));
+    return filterAndRankComboboxOptions(allOptions, q);
   }, [allOptions, searchQuery]);
 
   const handleOpenChange = useCallback(
@@ -139,6 +139,11 @@ export function AgentModeControl({
 
   const handleKeyboardAction = useCallback(
     (action: KeyboardActionDefinition): boolean => {
+      if (action.id === "agent.mode.open") {
+        if (disabled || !isActiveComposer || modeOptions.length === 0) return false;
+        handleOpenChange(true);
+        return true;
+      }
       if (action.id !== "message-input.mode-cycle") return false;
       if (disabled || !isActiveComposer) return false;
       const nextModeId = resolveNextAgentModeId({ modeOptions, selectedMode: selectedModeId });
@@ -146,13 +151,13 @@ export function AgentModeControl({
       onSelectMode(nextModeId);
       return true;
     },
-    [disabled, isActiveComposer, modeOptions, onSelectMode, selectedModeId],
+    [disabled, handleOpenChange, isActiveComposer, modeOptions, onSelectMode, selectedModeId],
   );
 
   useKeyboardActionHandler({
     handlerId: keyboardHandlerIdRef.current,
-    actions: ["message-input.mode-cycle"],
-    enabled: isActiveComposer && !disabled && modeOptions.length > 1,
+    actions: ["message-input.mode-cycle", "agent.mode.open"],
+    enabled: isActiveComposer && !disabled && modeOptions.length > 0,
     priority: 200,
     handle: handleKeyboardAction,
   });
@@ -181,6 +186,7 @@ export function AgentModeControl({
     () => ({
       title: t("agentControls.mode.title"),
       search: {
+        autoFocus: true,
         onChange: setSearchQuery,
         placeholder: t("agentControls.mode.searchPlaceholder"),
         testID: "mode-search-input",

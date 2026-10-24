@@ -9,7 +9,8 @@ const { extractFile } = require("@electron/asar");
 const { WebSocket } = require("ws");
 const assert = require("node:assert/strict");
 
-const EXECUTABLE_NAME = "Paseo";
+const EXECUTABLE_NAME = process.env.PASEO_WORKSPACES_BRANDED === "1" ? "Paseo Workspaces" : "Paseo";
+const APP_SCHEME = "paseo";
 const SMOKE_TIMEOUT_MS = 60_000;
 const EXIT_TIMEOUT_MS = 10_000;
 const TERMINAL_CAPTURE_ATTEMPTS = 20;
@@ -154,14 +155,77 @@ function createDefaultDaemonEnv(extraEnv) {
   };
 }
 
-function createIsolatedDesktopEnv({ home, listen, userData, cdpPort }) {
+function createIsolatedDesktopEnv({ home, listen, userData, cdpPort, workspaceCli }) {
   return {
     ...createDefaultDaemonEnv({ HOME: home, USERPROFILE: home }),
     PASEO_HOME: home,
     PASEO_LISTEN: listen,
-    PASEO_ELECTRON_USER_DATA_DIR: userData,
+    ...(process.env.PASEO_WORKSPACES_BRANDED === "1"
+      ? {}
+      : { PASEO_ELECTRON_USER_DATA_DIR: userData }),
+    ...(workspaceCli
+      ? {
+          WS_BIN: workspaceCli.path,
+          WS_SMOKE_LOG: workspaceCli.log,
+          WS_SMOKE_WORKSPACE_NAME: workspaceCli.name,
+          WS_SMOKE_WORKSPACE_DIR: workspaceCli.directory,
+        }
+      : {}),
     PASEO_ELECTRON_FLAGS: `--remote-debugging-address=127.0.0.1 --remote-debugging-port=${cdpPort}`,
   };
+}
+
+function createWorkspaceCliFixture(home) {
+  const name = "lilfeelz/workspaces-smoke";
+  const directory = path.join(home, "workspace-fixture");
+  const commandPath = path.join(home, "ws-smoke");
+  const log = path.join(home, "ws-smoke.log");
+  fs.mkdirSync(directory, { recursive: true });
+  fs.writeFileSync(
+    commandPath,
+    [
+      "#!/bin/sh",
+      'printf "%s\\n" "$*" >> "$WS_SMOKE_LOG"',
+      'case "$1" in',
+      '  list) printf "* %s\\n" "$WS_SMOKE_WORKSPACE_NAME" ;;',
+      '  dir) printf "%s\\n" "$WS_SMOKE_WORKSPACE_DIR" ;;',
+      "  surface) exec /bin/sleep 60 ;;",
+      "  *) exit 64 ;;",
+      "esac",
+      "",
+    ].join("\n"),
+    "utf8",
+  );
+  fs.chmodSync(commandPath, 0o755);
+  return { name, directory, path: commandPath, log };
+}
+
+async function waitForWorkspaceSurface(log, directory, deadline) {
+  while (Date.now() < deadline) {
+    if (
+      fs.existsSync(log) &&
+      fs.readFileSync(log, "utf8").split(/\r?\n/).includes(`surface ${directory}`)
+    ) {
+      return;
+    }
+    await delay(100);
+  }
+  throw new Error(
+    `Workspace bridge did not start ws surface. Calls: ${readIfExists(log) ?? "<none>"}`,
+  );
+}
+
+async function smokeWorkspaceBridge({ page, workspaceCli, deadline }) {
+  const row = page.getByRole("button").filter({ hasText: workspaceCli.name });
+  await row.waitFor({ state: "visible", timeout: remainingTime(deadline) });
+  const calls = readIfExists(workspaceCli.log) ?? "";
+  assert(calls.split(/\r?\n/).includes("list"), "Workspaces screen did not call ws list");
+  assert(
+    calls.split(/\r?\n/).includes(`dir ${workspaceCli.name}`),
+    "Workspaces screen did not resolve the workspace with ws dir",
+  );
+  await row.click();
+  await waitForWorkspaceSurface(workspaceCli.log, workspaceCli.directory, deadline);
 }
 
 function configureIsolatedDaemonHome(home, listen) {
@@ -291,8 +355,15 @@ function readIfExists(filePath) {
   return fs.existsSync(filePath) ? fs.readFileSync(filePath, "utf8") : null;
 }
 
+function getDesktopLogPath({ userData, daemonHome }) {
+  if (process.platform === "darwin" && process.env.PASEO_WORKSPACES_BRANDED === "1") {
+    return path.join(daemonHome, "Library", "Logs", "Paseo Workspaces", "main.log");
+  }
+  return path.join(userData, "logs", "main.log");
+}
+
 function formatLogs({ stdout, stderr, userData, daemonHome }) {
-  const desktopLog = readIfExists(path.join(userData, "logs", "main.log"));
+  const desktopLog = readIfExists(getDesktopLogPath({ userData, daemonHome }));
   const daemonLog = readIfExists(path.join(daemonHome, "daemon.log"));
   return [
     `App stdout:\n${stdout.join("").trim() || "<empty>"}`,
@@ -321,7 +392,7 @@ async function writeSmokeArtifacts({ page, stdout, stderr, userData, daemonHome,
     )}\n`,
   );
 
-  const desktopLog = readIfExists(path.join(userData, "logs", "main.log"));
+  const desktopLog = readIfExists(getDesktopLogPath({ userData, daemonHome }));
   if (desktopLog !== null) {
     fs.writeFileSync(path.join(artifactDir, "desktop-main.log"), desktopLog);
   }
@@ -462,13 +533,13 @@ async function waitForPackagedAppPage(browser, deadline) {
     const page = browser
       .contexts()
       .flatMap((context) => context.pages())
-      .find((candidate) => candidate.url().startsWith("paseo://app/"));
+      .find((candidate) => candidate.url().startsWith(`${APP_SCHEME}://app/`));
     if (page) {
       return page;
     }
     await delay(250);
   }
-  throw new Error("Timed out waiting for the packaged paseo://app/ renderer");
+  throw new Error(`Timed out waiting for the packaged ${APP_SCHEME}://app/ renderer`);
 }
 
 async function assertPackagedRendererLoaded(page, deadline) {
@@ -874,8 +945,13 @@ async function smokePackagedDesktopApp({
   assertLinuxDesktopIdentity(appPath);
   await smokeColdCliDaemonStart({ appPath });
 
-  const userData = createTempDir("paseo-smoke-user-data-");
   const daemonHome = createTempDir("paseo-smoke-daemon-home-");
+  const workspaceCli =
+    process.env.PASEO_WORKSPACES_BRANDED === "1" ? createWorkspaceCliFixture(daemonHome) : null;
+  const userData =
+    process.env.PASEO_WORKSPACES_BRANDED === "1"
+      ? path.join(daemonHome, "Library", "Application Support", "Paseo Workspaces")
+      : createTempDir("paseo-smoke-user-data-");
   const daemonPort = await reserveLocalTcpPort();
   let cdpPort = await reserveLocalTcpPort();
   for (let attempt = 0; cdpPort === daemonPort && attempt < 10; attempt += 1) {
@@ -891,6 +967,7 @@ async function smokePackagedDesktopApp({
     listen,
     userData,
     cdpPort,
+    workspaceCli,
   });
 
   const stdout = [];
@@ -944,6 +1021,18 @@ async function smokePackagedDesktopApp({
       userData,
       deadline,
     });
+    if (process.env.PASEO_WORKSPACES_BRANDED === "1") {
+      await waitForFile(getDesktopLogPath({ userData, daemonHome }), "workspace app log");
+      await page.keyboard.press("Meta+g");
+      await page.waitForFunction(
+        () => location.pathname.includes("/plugin/workspaces-bridge/surface/main"),
+        undefined,
+        { timeout: remainingTime(deadline) },
+      );
+      console.log("Packaged desktop smoke: workspaces-only screen opened");
+      await smokeWorkspaceBridge({ page, workspaceCli, deadline });
+      console.log("Packaged desktop smoke: ws list, ws dir, and ws surface succeeded");
+    }
     console.log("Packaged desktop smoke: renderer-started desktop daemon reported running");
     await assertBuiltinPluginsStarted(listen);
     console.log("Packaged desktop smoke: every built-in plugin started");

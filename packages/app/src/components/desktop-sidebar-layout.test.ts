@@ -20,6 +20,27 @@ describe("desktop sidebar layout", () => {
     ).toBe(false);
   });
 
+  it("removes sidebar width and controls in workspace-only builds", () => {
+    expect(
+      resolveDesktopSidebarVisibility({
+        chromeEnabled: true,
+        isCompactLayout: false,
+        isMounted: true,
+        isOpen: true,
+        canShare: true,
+        hideSidebar: true,
+      }),
+    ).toBe(false);
+    expect(
+      resolveDesktopAppChromeLayout({
+        desktopSidebarRendered: false,
+        hasTopLeftWindowControls: true,
+        sidebarControlsEnabled: true,
+        hideSidebarControls: true,
+      }).sidebarToggleOwner,
+    ).toBe("none");
+  });
+
   it("keeps the sidebar toggle window-owned beside left window controls", () => {
     expect(
       resolveDesktopAppChromeLayout({

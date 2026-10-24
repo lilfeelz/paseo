@@ -40,6 +40,13 @@ export type SidebarNavItem<Section extends SidebarSection = SidebarSection> =
   | BuiltinSidebarNavItem<Section>
   | PluginSidebarNavItem;
 
+export function resolveWorkspaceOnlyNavItems<Section extends SidebarSection>(
+  _section: Section,
+  _items: readonly SidebarNavItem<Section>[],
+): SidebarNavItem<Section>[] {
+  return [];
+}
+
 const BUILTIN_LABEL_KEYS: Record<BuiltinSidebarItemId, string> = {
   "new-workspace": "sidebar.actions.newWorkspace",
   history: "sidebar.sections.sessions",

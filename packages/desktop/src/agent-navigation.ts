@@ -1,8 +1,15 @@
 import { parseAgentDeepLink, type AgentDeepLinkTarget } from "@getpaseo/protocol/agent-deep-link";
 
-export function parseAgentDeepLinkFromArgv(argv: string[]): AgentDeepLinkTarget | null {
+export function parseAgentDeepLinkFromArgv(
+  argv: string[],
+  schemeAlias?: [string, string],
+): AgentDeepLinkTarget | null {
   for (const arg of argv) {
-    const target = parseAgentDeepLink(arg);
+    const normalized =
+      schemeAlias && arg.startsWith(`${schemeAlias[0]}:`)
+        ? `${schemeAlias[1]}:${arg.slice(schemeAlias[0].length + 1)}`
+        : arg;
+    const target = parseAgentDeepLink(normalized);
     if (target) {
       return target;
     }

@@ -11,6 +11,13 @@ import { Button } from "@/components/ui/button";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { AgentList } from "@/components/agent-list";
 import { SearchField } from "@/components/ui/search-field";
+import { PressHighlight } from "@/components/ui/press-highlight";
+import { isWeb } from "@/constants/platform";
+import {
+  OverlayLayerProvider,
+  useGlobalWebOverlayLayer,
+  useWebOverlayRegistration,
+} from "@/lib/overlay-root";
 import { HostFilter } from "@/components/hosts/host-filter";
 import { ALL_HOSTS_OPTION_ID } from "@/components/hosts/host-picker";
 import { type AgentHistoryHostError, useAgentHistory } from "@/hooks/use-agent-history";
@@ -60,14 +67,46 @@ function resolveEmptyText(input: {
   return "No sessions for this host";
 }
 
-export function SessionsScreen() {
+export function SessionsScreen({ overlay = false }: { overlay?: boolean }) {
   const isFocused = useIsFocused();
 
   if (!isFocused) {
     return <View style={styles.container} />;
   }
 
-  return <SessionsScreenContent />;
+  const content = <SessionsScreenContent />;
+  return overlay ? <HistoryOverlay>{content}</HistoryOverlay> : content;
+}
+
+function HistoryOverlay({ children }: { children: ReactElement }) {
+  const close = useCallback(() => router.back(), []);
+  const layer = useGlobalWebOverlayLayer("modal", isWeb);
+  const handleKeyDown = useCallback(
+    (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return false;
+      event.preventDefault();
+      close();
+      return true;
+    },
+    [close],
+  );
+  const setOverlayScope = useWebOverlayRegistration({
+    active: isWeb,
+    layer,
+    onKeyDown: handleKeyDown,
+  });
+  const backdropStyle = useCallback(
+    ({ pressed }: { pressed: boolean }) => [styles.overlayBackdrop, pressed && { opacity: 0.8 }],
+    [],
+  );
+  return (
+    <OverlayLayerProvider layer={isWeb ? layer : 0}>
+      <View ref={setOverlayScope} style={[styles.overlayRoot, isWeb && { zIndex: layer }]}>
+        <PressHighlight accessibilityRole="button" style={backdropStyle} onPress={close} />
+        <View style={styles.overlayPanel}>{children}</View>
+      </View>
+    </OverlayLayerProvider>
+  );
 }
 
 function SessionsScreenContent() {
@@ -150,7 +189,7 @@ function SessionsScreenContent() {
     );
   }, [hasMore, isLoadingMore, isSearchTruncated, loadMore, t]);
 
-  return (
+  const content = (
     <View style={styles.container}>
       <MenuHeader title={t("sessions.title")} />
       {showFilterRow ? (
@@ -222,12 +261,43 @@ function SessionsScreenContent() {
       {importSession.sheet}
     </View>
   );
+  return content;
 }
 
 const styles = StyleSheet.create((theme) => ({
   container: {
     flex: 1,
     backgroundColor: theme.colors.surface0,
+  },
+  overlayRoot: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    flex: 1,
+    justifyContent: "flex-start",
+    alignItems: "center",
+    paddingTop: theme.spacing[12],
+  },
+  overlayBackdrop: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+  },
+  overlayPanel: {
+    width: 760,
+    height: "80%",
+    maxWidth: "92%",
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: theme.borderRadius.lg,
+    overflow: "hidden",
+    backgroundColor: theme.colors.surface0,
+    ...theme.shadow.lg,
   },
   filterContainer: {
     flexDirection: "row",

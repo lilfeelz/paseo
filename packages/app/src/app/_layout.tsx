@@ -39,6 +39,7 @@ import { ChangelogHost } from "@/changelog";
 import { AppDiagnosticHost } from "@/components/app-diagnostic-host";
 import { AppearanceStyleBoundary } from "@/components/appearance-style-boundary";
 import { LeftSidebar } from "@/components/left-sidebar";
+import { isWorkspacesOnlyBuild } from "@/constants/workspaces-only";
 import { WindowSidebarMenuToggle } from "@/components/headers/sidebar-menu-toggle";
 import { DesktopWindowControls } from "@/components/desktop/window-controls";
 import { SidebarModelProvider } from "@/components/sidebar/sidebar-model";
@@ -90,6 +91,8 @@ import { RosettaCalloutSource } from "@/desktop/updates/rosetta-callout-source";
 import { UpdateCalloutSource } from "@/desktop/updates/update-callout-source";
 import { useActiveWorktreeNewAction } from "@/hooks/use-active-worktree-new-action";
 import { useGlobalNewWorkspaceAction } from "@/hooks/use-global-new-workspace-action";
+import { useGlobalHostChooserAction } from "@/hooks/use-global-host-chooser-action";
+import { useGlobalWorkspacesPickerAction } from "@/hooks/use-global-workspaces-picker-action";
 import { useLatchedBoolean } from "@/hooks/use-latched-boolean";
 import { useFaviconStatus } from "@/hooks/use-favicon-status";
 import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts";
@@ -515,6 +518,8 @@ function AppContainer({ children, chromeEnabled: chromeEnabledOverride }: AppCon
 
   useActiveWorktreeNewAction();
   useGlobalNewWorkspaceAction();
+  useGlobalHostChooserAction();
+  useGlobalWorkspacesPickerAction();
 
   const activeWorkspace = useActiveWorkspaceSelection();
   const explorerVisible = useIsExplorerSidebarOpen({
@@ -538,12 +543,14 @@ function AppContainer({ children, chromeEnabled: chromeEnabledOverride }: AppCon
       requestedSidebarWidth: sidebarWidth,
       viewportWidth,
     }),
+    hideSidebar: isWorkspacesOnlyBuild,
   });
   const hasTopLeftWindowControls = useHasWindowChromeObstruction("top-left");
   const appChromeLayout = resolveDesktopAppChromeLayout({
     desktopSidebarRendered: desktopSidebarVisible,
     hasTopLeftWindowControls,
     sidebarControlsEnabled: chromeEnabled && !isWorkspaceFocusModeEnabled,
+    hideSidebarControls: isWorkspacesOnlyBuild,
   });
   const sidebarChrome = (
     <SidebarChrome

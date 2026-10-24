@@ -46,6 +46,7 @@ import { SidebarSectionHeader } from "@/components/sidebar/sidebar-section-heade
 import { Shortcut } from "@/components/ui/shortcut";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { HEADER_INNER_HEIGHT, useIsCompactFormFactor } from "@/constants/layout";
+import { isWorkspacesOnlyBuild } from "@/constants/workspaces-only";
 import { useOpenAddProject } from "@/hooks/use-open-add-project";
 import { useImportSession } from "@/hooks/use-import-session";
 import { useShortcutKeys } from "@/hooks/use-shortcut-keys";
@@ -133,7 +134,7 @@ interface DesktopSidebarProps extends SidebarSharedProps {
   active: boolean;
 }
 
-export const LeftSidebar = memo(function LeftSidebar({ active }: { active: boolean }) {
+function LeftSidebarContent({ active }: { active: boolean }) {
   const { theme } = useUnistyles();
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
@@ -289,6 +290,10 @@ export const LeftSidebar = memo(function LeftSidebar({ active }: { active: boole
       {importSessionSheet}
     </>
   );
+}
+
+export const LeftSidebar = memo(function LeftSidebar({ active }: { active: boolean }) {
+  return isWorkspacesOnlyBuild ? null : <LeftSidebarContent active={active} />;
 });
 
 function sidebarHostOptionTestID(serverId: string): string {
@@ -445,21 +450,23 @@ function SidebarFooter({
       <View style={styles.footerContainer} testID="sidebar-footer">
         <SidebarFooterRows onBeforeNavigate={onBeforeNavigate} />
         <View style={styles.sidebarFooter} testID="sidebar-footer-bottom-line">
-          <FooterIconButton
-            onPress={handleOpenProject}
-            testID="sidebar-add-project"
-            label={labels.addProject}
-            icon={FolderPlus}
-            shortcutKeys={newAgentKeys}
-          />
-          <SidebarUsageIcon label={labels.usage} />
+          {isWorkspacesOnlyBuild ? null : (
+            <FooterIconButton
+              onPress={handleOpenProject}
+              testID="sidebar-add-project"
+              label={labels.addProject}
+              icon={FolderPlus}
+              shortcutKeys={newAgentKeys}
+            />
+          )}
+          {isWorkspacesOnlyBuild ? null : <SidebarUsageIcon label={labels.usage} />}
           <SidebarHostPicker
             label={labels.hosts}
             onAddHost={handleAddHost}
             onOpenHostSettings={handleOpenHostSettings}
           />
           <View style={styles.footerSpacer} />
-          <SidebarHelpMenu />
+          {isWorkspacesOnlyBuild ? null : <SidebarHelpMenu />}
           <FooterIconButton
             onPress={handleSettings}
             testID="sidebar-settings"
@@ -582,31 +589,32 @@ function MobileSidebar({
           firstRowTrailing={closeButton}
         />
 
-        {isInitialLoad && !hasActiveHostFilter ? (
-          <SidebarAgentListSkeleton />
-        ) : (
-          <SidebarWorkspaceList
-            collapsedProjectKeys={collapsedProjectKeys}
-            onToggleProjectCollapsed={toggleProjectCollapsed}
-            shortcutIndexByWorkspaceKey={shortcutIndexByWorkspaceKey}
-            groupMode={groupMode}
-            workspaceGroups={workspaceGroups}
-            projectIconTargets={projectIconTargets}
-            pinnedGroups={pinnedGroups}
-            projects={projects}
-            hasProjectsBeforeFilter={hasProjectsBeforeFilter}
-            hasActiveProjectFilter={hasActiveProjectFilter}
-            workspaceEntriesByKey={workspaceEntriesByKey}
-            isRefreshing={isManualRefresh && isRevalidating}
-            onRefresh={handleRefresh}
-            onWorkspacePress={handleWorkspacePress}
-            onAddProject={handleOpenProject}
-            onImportSession={handleImportSession}
-            parentGestureRef={closeGestureRef}
-            dragGestureHostActive={active}
-            listHeaderComponent={workspacesSectionHeaderElement}
-          />
-        )}
+        {!isWorkspacesOnlyBuild &&
+          (isInitialLoad && !hasActiveHostFilter ? (
+            <SidebarAgentListSkeleton />
+          ) : (
+            <SidebarWorkspaceList
+              collapsedProjectKeys={collapsedProjectKeys}
+              onToggleProjectCollapsed={toggleProjectCollapsed}
+              shortcutIndexByWorkspaceKey={shortcutIndexByWorkspaceKey}
+              groupMode={groupMode}
+              workspaceGroups={workspaceGroups}
+              projectIconTargets={projectIconTargets}
+              pinnedGroups={pinnedGroups}
+              projects={projects}
+              hasProjectsBeforeFilter={hasProjectsBeforeFilter}
+              hasActiveProjectFilter={hasActiveProjectFilter}
+              workspaceEntriesByKey={workspaceEntriesByKey}
+              isRefreshing={isManualRefresh && isRevalidating}
+              onRefresh={handleRefresh}
+              onWorkspacePress={handleWorkspacePress}
+              onAddProject={handleOpenProject}
+              onImportSession={handleImportSession}
+              parentGestureRef={closeGestureRef}
+              dragGestureHostActive={active}
+              listHeaderComponent={workspacesSectionHeaderElement}
+            />
+          ))}
 
         <SidebarFooter
           handleOpenProject={handleOpenProject}
@@ -789,30 +797,31 @@ function DesktopSidebar({
           <SidebarNavRows style={sidebarHeaderGroupStyle} />
         </View>
 
-        {isInitialLoad && !hasActiveHostFilter ? (
-          <SidebarAgentListSkeleton />
-        ) : (
-          <SidebarWorkspaceList
-            collapsedProjectKeys={collapsedProjectKeys}
-            onToggleProjectCollapsed={toggleProjectCollapsed}
-            shortcutIndexByWorkspaceKey={shortcutIndexByWorkspaceKey}
-            groupMode={groupMode}
-            workspaceGroups={workspaceGroups}
-            projectIconTargets={projectIconTargets}
-            pinnedGroups={pinnedGroups}
-            projects={projects}
-            hasProjectsBeforeFilter={hasProjectsBeforeFilter}
-            hasActiveProjectFilter={hasActiveProjectFilter}
-            workspaceEntriesByKey={workspaceEntriesByKey}
-            isRefreshing={isManualRefresh && isRevalidating}
-            onRefresh={handleRefresh}
-            onAddProject={handleOpenProject}
-            onImportSession={handleImportSession}
-            listHeaderComponent={workspacesSectionHeaderElement}
-          />
-        )}
+        {!isWorkspacesOnlyBuild &&
+          (isInitialLoad && !hasActiveHostFilter ? (
+            <SidebarAgentListSkeleton />
+          ) : (
+            <SidebarWorkspaceList
+              collapsedProjectKeys={collapsedProjectKeys}
+              onToggleProjectCollapsed={toggleProjectCollapsed}
+              shortcutIndexByWorkspaceKey={shortcutIndexByWorkspaceKey}
+              groupMode={groupMode}
+              workspaceGroups={workspaceGroups}
+              projectIconTargets={projectIconTargets}
+              pinnedGroups={pinnedGroups}
+              projects={projects}
+              hasProjectsBeforeFilter={hasProjectsBeforeFilter}
+              hasActiveProjectFilter={hasActiveProjectFilter}
+              workspaceEntriesByKey={workspaceEntriesByKey}
+              isRefreshing={isManualRefresh && isRevalidating}
+              onRefresh={handleRefresh}
+              onAddProject={handleOpenProject}
+              onImportSession={handleImportSession}
+              listHeaderComponent={workspacesSectionHeaderElement}
+            />
+          ))}
 
-        <SidebarCalloutSlot />
+        {isWorkspacesOnlyBuild ? null : <SidebarCalloutSlot />}
 
         <SidebarFooter
           handleOpenProject={handleOpenProject}

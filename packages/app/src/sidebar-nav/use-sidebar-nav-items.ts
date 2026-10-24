@@ -3,8 +3,10 @@ import { useAppSettings } from "@/hooks/use-settings";
 import type { AppSettings } from "@/hooks/use-settings/storage";
 import { useInstalledPlugins } from "@/plugins/registry";
 import { groupPluginSidebarItems } from "@/plugins/sidebar-groups";
+import { isWorkspacesOnlyBuild } from "@/constants/workspaces-only";
 import {
   moveSidebarNavItem,
+  resolveWorkspaceOnlyNavItems,
   resolveSidebarNavItems,
   setSidebarNavItemVisible,
   type SidebarNavItem,
@@ -32,10 +34,10 @@ export function useSidebarNavItems<Section extends SidebarSection>(
   const preferences = settings[field];
   const pluginGroups = useMemo(() => groupPluginSidebarItems(plugins, section), [plugins, section]);
 
-  const items = useMemo(
-    () => resolveSidebarNavItems({ section, pluginGroups, preferences }),
-    [pluginGroups, preferences, section],
-  );
+  const items = useMemo(() => {
+    const resolved = resolveSidebarNavItems({ section, pluginGroups, preferences });
+    return isWorkspacesOnlyBuild ? resolveWorkspaceOnlyNavItems(section, resolved) : resolved;
+  }, [pluginGroups, preferences, section]);
 
   const setVisible = useCallback(
     (key: string, visible: boolean) => {

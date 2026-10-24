@@ -40,6 +40,8 @@
     "dev:server": "cross-env PASEO_LISTEN=127.0.0.1:6768 ./scripts/dev-daemon.sh",
     "dev:server:watch": "concurrently --kill-others --names protocol,client,server --prefix-colors yellow,blue,cyan \"npm run watch:protocol\" \"npm run watch:client\" \"npm run dev:server:raw\"",
     "dev:server:raw": "npm run dev --workspace=@getpaseo/server",
+    "dev:app:workspaces": "cross-env EXPO_PUBLIC_PASEO_WORKSPACES_ONLY=1 npm run dev:app",
+    "build:desktop:workspaces": "cross-env EXPO_PUBLIC_PASEO_WORKSPACES_ONLY=1 npm run build:app-deps:clean && cd packages/app && cross-env EXPO_PUBLIC_PASEO_WORKSPACES_ONLY=1 PASEO_WEB_PLATFORM=electron npx expo export --platform web && cd ../.. && cross-env PASEO_WORKSPACES_BRANDED=1 npm run build:workspaces --workspace=@getpaseo/desktop --",
     "dev:app": "cross-env PASEO_LISTEN=127.0.0.1:6768 EXPO_PORT=8081 ./scripts/dev-app.sh",
     "test:e2e:mobile": "./scripts/test-mobile-agent-device.sh",
     "test:e2e:composer-keyboard:android": "./packages/app/e2e/mobile/composer-keyboard/android.sh",

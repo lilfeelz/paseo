@@ -1,0 +1,69 @@
+name: Paseo Workspaces desktop
+
+on:
+  push:
+    tags:
+      - "paseo-workspaces-build-*"
+
+permissions:
+  contents: read
+
+jobs:
+  build-macos-arm64:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: node scripts/npm-retry.mjs ci
+
+      - name: Build unnotarized workspace app
+        env:
+          PASEO_WORKSPACES_BRANDED: "1"
+          PASEO_METRO_MAX_WORKERS: "1"
+          NODE_OPTIONS: "--max-old-space-size=4096"
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+          EP_GH_IGNORE_TIME: "true"
+        run: npm run build:desktop:workspaces -- --publish never --mac --arm64 --config.mac.notarize=false --config.mac.hardenedRuntime=false
+
+      - name: Verify app identity and archive
+        run: |
+          set -euo pipefail
+          app=(packages/desktop/release/mac*/"Paseo Workspaces.app")
+          test -d "${app[0]}"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "${app[0]}/Contents/Info.plist")" = "org.lilfeelz.paseo-workspaces"
+          dmg=(packages/desktop/release/Paseo-Workspaces-*-arm64.dmg)
+          test -f "${dmg[0]}"
+          hdiutil verify "${dmg[0]}"
+
+      - name: Launch packaged app and verify workspace screen
+        env:
+          PASEO_WORKSPACES_BRANDED: "1"
+          PASEO_DESKTOP_SMOKE_ARTIFACT_DIR: ${{ runner.temp }}/paseo-workspaces-smoke
+        run: |
+          set -euo pipefail
+          app=(packages/desktop/release/mac*/"Paseo Workspaces.app")
+          node packages/desktop/e2e/packaged-app-smoke.js --app "${app[0]}"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: paseo-workspaces-macos-arm64-smoke
+          path: ${{ runner.temp }}/paseo-workspaces-smoke
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: paseo-workspaces-macos-arm64
+          path: packages/desktop/release/Paseo-Workspaces-*-arm64.dmg
+          if-no-files-found: error
+          retention-days: 7

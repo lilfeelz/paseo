@@ -134,6 +134,55 @@ interface HelpSectionCase {
 }
 
 describe("keyboard-shortcuts", () => {
+  it("reserves Cmd-G and Cmd-D for the branded workspace and host overlays", () => {
+    const workspacePicker = DEFAULT_BINDINGS.find(
+      (binding) => binding.id === "workspaces-overlay-cmd-g-mac",
+    );
+    const hostPicker = DEFAULT_BINDINGS.find((binding) => binding.id === "hosts-overlay-cmd-d-mac");
+
+    expect(workspacePicker).toMatchObject({
+      action: "workspaces.overlay.open",
+      combo: "Cmd+G",
+      when: { workspacesOnly: true },
+    });
+    expect(hostPicker).toMatchObject({
+      action: "hosts.overlay.open",
+      combo: "Cmd+D",
+      when: { workspacesOnly: true },
+    });
+  });
+
+  it("reserves Cmd-Z, Cmd-S, and Cmd-Shift-S for workspace navigation and history", () => {
+    expect(
+      DEFAULT_BINDINGS.find((binding) => binding.id === "workspace-previous-cmd-z-mac"),
+    ).toMatchObject({
+      action: "workspace.previous",
+      combo: "Cmd+Z",
+      when: { workspacesOnly: true },
+    });
+    expect(
+      DEFAULT_BINDINGS.find((binding) => binding.id === "workspace-project-list-cmd-s-mac"),
+    ).toMatchObject({
+      action: "workspace.project.list",
+      combo: "Cmd+S",
+      when: { workspacesOnly: true },
+    });
+    expect(
+      DEFAULT_BINDINGS.find((binding) => binding.id === "sessions-list-cmd-shift-s-mac"),
+    ).toMatchObject({
+      action: "sessions.list",
+      combo: "Cmd+Shift+S",
+      when: { workspacesOnly: true },
+    });
+    expect(
+      DEFAULT_BINDINGS.find((binding) => binding.id === "workspace-previous-cmd-z-mac")?.help?.id,
+    ).toBe("workspace-prev");
+    expect(
+      DEFAULT_BINDINGS.find((binding) => binding.id === "workspace-navigate-relative-cmd-left-mac")
+        ?.when,
+    ).toMatchObject({ workspacesOnly: false });
+  });
+
   const matchingCases: MatchingShortcutCase[] = [
     {
       name: "matches Cmd+O to open project",
