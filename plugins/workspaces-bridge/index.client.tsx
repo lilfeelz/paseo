@@ -72,6 +72,7 @@ function Workspaces({ theme, host, params, navigation }: PluginScreenProps) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [overlayOpen, setOverlayOpen] = useState(true);
   const opening = useRef(false);
+  const revealSelection = useRef(false);
   const resultsRef = useRef<import("react-native").ScrollView>(null);
   const rowLayouts = useRef(new Map<number, { y: number; height: number }>());
   const viewportHeight = useRef(0);
@@ -104,12 +105,14 @@ function Workspaces({ theme, host, params, navigation }: PluginScreenProps) {
   const selectedIndex =
     filteredEntries.length > 0 ? Math.min(activeIndex, filteredEntries.length - 1) : -1;
   useEffect(() => {
+    if (!revealSelection.current) return;
+    revealSelection.current = false;
     const row = rowLayouts.current.get(selectedIndex);
     if (!row || viewportHeight.current <= 0) return;
     const scroll = resultsRef.current;
     if (!scroll) return;
-    // Reveal the hovered/keyboard-selected row only when it leaves the viewport;
-    // fixed row-height guesses made pointer selection jump the list downward.
+    // Only keyboard navigation may move the list. Mount, layout, and filtering
+    // must preserve the current scroll position.
     const currentTop = currentOffset.current;
     if (row.y < currentTop) scroll.scrollTo({ y: row.y, animated: false });
     else if (row.y + row.height > currentTop + viewportHeight.current) {
@@ -195,14 +198,15 @@ function Workspaces({ theme, host, params, navigation }: PluginScreenProps) {
     (event: { nativeEvent?: { key?: string } }) => {
       const key = event.nativeEvent?.key;
       if ((key !== "ArrowDown" && key !== "ArrowUp") || filteredEntries.length === 0) return;
-      setActiveIndex((index) => {
-        const current = Math.min(index, filteredEntries.length - 1);
-        return key === "ArrowDown"
-          ? (current + 1) % filteredEntries.length
-          : (current - 1 + filteredEntries.length) % filteredEntries.length;
-      });
+      const nextIndex =
+        key === "ArrowDown"
+          ? (selectedIndex + 1) % filteredEntries.length
+          : (selectedIndex - 1 + filteredEntries.length) % filteredEntries.length;
+      if (nextIndex === selectedIndex) return;
+      revealSelection.current = true;
+      setActiveIndex(nextIndex);
     },
-    [filteredEntries.length],
+    [filteredEntries.length, selectedIndex],
   );
   const handleModalOpenChange = useCallback(
     (isOpen: boolean) => {
