@@ -1023,6 +1023,7 @@ async function smokePackagedDesktopApp({
     });
     if (process.env.PASEO_WORKSPACES_BRANDED === "1") {
       await waitForFile(getDesktopLogPath({ userData, daemonHome }), "workspace app log");
+      await page.keyboard.press("Meta+g");
       await page.waitForFunction(
         () => location.pathname.includes("/plugin/workspaces-bridge/surface/main"),
         undefined,
