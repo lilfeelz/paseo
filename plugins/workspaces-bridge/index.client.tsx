@@ -74,6 +74,7 @@ function Workspaces({ theme, host, params, navigation }: PluginScreenProps) {
   const [entries, setEntries] = useState<WorkspaceEntry[]>([]);
   const [query, setQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
+  const [overlayOpen, setOverlayOpen] = useState(true);
   const opening = useRef(false);
   const resultsRef = useRef<import("react-native").ScrollView>(null);
   const rowLayouts = useRef(new Map<number, { y: number; height: number }>());
@@ -209,7 +210,10 @@ function Workspaces({ theme, host, params, navigation }: PluginScreenProps) {
   );
   const handleModalOpenChange = useCallback(
     (isOpen: boolean) => {
-      if (!isOpen) navigation?.close?.();
+      if (!isOpen) {
+        setOverlayOpen(false);
+        navigation?.close?.();
+      }
     },
     [navigation],
   );
@@ -271,7 +275,7 @@ function Workspaces({ theme, host, params, navigation }: PluginScreenProps) {
       {error ? <Text style={styles.error}>{error}</Text> : null}
     </>
   );
-  if (params.overlay === "1") {
+  if (params.overlay === "1" && overlayOpen) {
     return (
       <Modal
         open
@@ -308,5 +312,29 @@ function Workspaces({ theme, host, params, navigation }: PluginScreenProps) {
 
 export default function contribute(client: PluginClientContext) {
   client.addScreen({ id: "main", title: "Workspaces", Component: Workspaces });
+  client.addCommandCenterItem({
+    id: "choose-workspace",
+    title: "Choose workspace",
+    icon: "Search",
+    context: "global",
+    onSelect({ openScreen }) {
+      openScreen({ screenId: "main", params: { overlay: "1" } });
+    },
+  });
+  client.addCommandCenterItem({
+    id: "list-project-workspaces",
+    title: "List project workspaces",
+    icon: "FolderOpen",
+    keywords: ["project", "workspace", "checkout"],
+    context: "workspace",
+    onSelect({ workspace, openScreen }) {
+      const projectKey = projectKeyFromWorkspacePath(workspace.directory);
+      if (!projectKey) return;
+      openScreen({
+        screenId: "main",
+        params: { overlay: "1", projectKey },
+      });
+    },
+  });
   return () => {};
 }
