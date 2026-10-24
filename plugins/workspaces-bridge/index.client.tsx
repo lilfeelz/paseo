@@ -308,5 +308,28 @@ function Workspaces({ theme, host, params, navigation }: PluginScreenProps) {
 
 export default function contribute(client: PluginClientContext) {
   client.addScreen({ id: "main", title: "Workspaces", Component: Workspaces });
+  client.addCommandCenterItem({
+    id: "choose-workspace",
+    title: "Choose workspace",
+    icon: "Search",
+    context: "global",
+    onSelect({ openScreen }) {
+      openScreen({ screenId: "main", params: { overlay: "1" } });
+    },
+  });
+  client.addCommandCenterItem({
+    id: "list-project-workspaces",
+    title: "List project workspaces",
+    icon: "FolderOpen",
+    keywords: ["project", "workspace", "checkout"],
+    context: "workspace",
+    onSelect({ workspace, openScreen }) {
+      const projectKey = projectKeyFromWorkspacePath(workspace.directory);
+      openScreen({
+        screenId: "main",
+        params: { overlay: "1", ...(projectKey ? { projectKey } : {}) },
+      });
+    },
+  });
   return () => {};
 }
