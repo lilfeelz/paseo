@@ -23,23 +23,42 @@ function WorkspaceRow({
   onOpen,
   selected,
   onSelect,
+  onLayout,
+  index,
   styles,
 }: {
   entry: WorkspaceEntry;
   busy: boolean;
   onOpen: (entry: WorkspaceEntry) => void;
   selected: boolean;
-  onSelect: () => void;
+  onSelect: (index: number) => void;
+  onLayout: (index: number, layout: { y: number; height: number }) => void;
+  index: number;
   styles: { text: object; detail: object; row: object; rowSelected: object };
 }) {
   const open = useCallback(() => onOpen(entry), [entry, onOpen]);
+  const select = useCallback(() => onSelect(index), [index, onSelect]);
+  const layout = useCallback(
+    (event: { nativeEvent: { layout: { y: number; height: number } } }) =>
+      onLayout(index, event.nativeEvent.layout),
+    [index, onLayout],
+  );
+  const rowStyle = useCallback(
+    ({ hovered = false, pressed }: { hovered?: boolean; pressed: boolean }) => [
+      styles.row,
+      selected && styles.rowSelected,
+      (hovered || pressed) && styles.rowSelected,
+    ],
+    [selected, styles],
+  );
   return (
     <Pressable
       accessibilityRole="button"
       disabled={busy}
-      onHoverIn={onSelect}
+      onHoverIn={select}
+      onLayout={layout}
       onPress={open}
-      style={[styles.row, selected && styles.rowSelected]}
+      style={rowStyle}
     >
       <Text style={styles.text}>{entry.name}</Text>
       <Text style={styles.detail}>{entry.active ? "Active in zmx" : "No active pane"}</Text>
@@ -57,6 +76,21 @@ function Workspaces({ theme, host, params, navigation }: PluginScreenProps) {
   const [activeIndex, setActiveIndex] = useState(0);
   const opening = useRef(false);
   const resultsRef = useRef<import("react-native").ScrollView>(null);
+  const rowLayouts = useRef(new Map<number, { y: number; height: number }>());
+  const viewportHeight = useRef(0);
+  const currentOffset = useRef(0);
+  const handleViewportLayout = useCallback(
+    (event: { nativeEvent: { layout: { height: number } } }) => {
+      viewportHeight.current = event.nativeEvent.layout.height;
+    },
+    [],
+  );
+  const handleScroll = useCallback((event: { nativeEvent: { contentOffset: { y: number } } }) => {
+    currentOffset.current = event.nativeEvent.contentOffset.y;
+  }, []);
+  const handleRowLayout = useCallback((index: number, layout: { y: number; height: number }) => {
+    rowLayouts.current.set(index, layout);
+  }, []);
   const projectEntries = useMemo(
     () =>
       params.projectKey
@@ -73,8 +107,18 @@ function Workspaces({ theme, host, params, navigation }: PluginScreenProps) {
   const selectedIndex =
     filteredEntries.length > 0 ? Math.min(activeIndex, filteredEntries.length - 1) : -1;
   useEffect(() => {
-    if (selectedIndex >= 0) resultsRef.current?.scrollTo({ y: selectedIndex * 62, animated: true });
-  }, [selectedIndex]);
+    const row = rowLayouts.current.get(selectedIndex);
+    if (!row || viewportHeight.current <= 0) return;
+    const scroll = resultsRef.current;
+    if (!scroll) return;
+    // Reveal the hovered/keyboard-selected row only when it leaves the viewport;
+    // fixed row-height guesses made pointer selection jump the list downward.
+    const currentTop = currentOffset.current;
+    if (row.y < currentTop) scroll.scrollTo({ y: row.y, animated: false });
+    else if (row.y + row.height > currentTop + viewportHeight.current) {
+      scroll.scrollTo({ y: row.y + row.height - viewportHeight.current, animated: false });
+    }
+  }, [filteredEntries, selectedIndex]);
   const styles = useMemo(
     () => ({
       root: { flex: 1, padding: 16, gap: 12, backgroundColor: theme.colors.surface0 },
@@ -170,6 +214,10 @@ function Workspaces({ theme, host, params, navigation }: PluginScreenProps) {
     [navigation],
   );
   const handleRefresh = useCallback(() => void refresh(), [refresh]);
+  const handleQueryChange = useCallback((value: string) => {
+    setQuery(value);
+    setActiveIndex(0);
+  }, []);
   const search = (
     <TextInput
       accessibilityLabel="Search workspaces"
@@ -183,10 +231,7 @@ function Workspaces({ theme, host, params, navigation }: PluginScreenProps) {
       placeholderTextColor={theme.colors.foregroundMuted}
       returnKeyType="go"
       value={query}
-      onChangeText={(value) => {
-        setQuery(value);
-        setActiveIndex(0);
-      }}
+      onChangeText={handleQueryChange}
       style={styles.search}
     />
   );
@@ -194,6 +239,9 @@ function Workspaces({ theme, host, params, navigation }: PluginScreenProps) {
     <ScrollView
       ref={resultsRef}
       style={styles.list}
+      onLayout={handleViewportLayout}
+      onScroll={handleScroll}
+      scrollEventThrottle={16}
       contentContainerStyle={styles.listContent}
       keyboardShouldPersistTaps="handled"
     >
@@ -205,7 +253,9 @@ function Workspaces({ theme, host, params, navigation }: PluginScreenProps) {
           onOpen={openEntry}
           styles={styles}
           selected={index === selectedIndex}
-          onSelect={() => setActiveIndex(index)}
+          onSelect={setActiveIndex}
+          onLayout={handleRowLayout}
+          index={index}
         />
       ))}
       {filteredEntries.length === 0 ? (

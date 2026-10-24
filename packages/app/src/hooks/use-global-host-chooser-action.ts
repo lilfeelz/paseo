@@ -14,6 +14,7 @@ export function useGlobalHostChooserAction() {
   const handle = useCallback(() => {
     chooseHost({
       title: "Choose host",
+      forcePicker: true,
       onChooseHost: (serverId) => router.replace(`/h/${encodeURIComponent(serverId)}`),
     });
     return true;

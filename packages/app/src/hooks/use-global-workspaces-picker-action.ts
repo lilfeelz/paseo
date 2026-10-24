@@ -101,7 +101,7 @@ export function useGlobalWorkspacesPickerAction() {
   });
 
   const handleSessionsList = useCallback(() => {
-    router.push("/sessions" as never);
+    router.push((isWorkspacesOnlyBuild ? "/sessions?overlay=1" : "/sessions") as never);
     return true;
   }, []);
   useKeyboardActionHandler({

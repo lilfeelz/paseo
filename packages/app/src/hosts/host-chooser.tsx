@@ -33,6 +33,7 @@ type HostChoiceHandler = (serverId: string) => void | Promise<void>;
 
 export interface ChooseHostInput {
   title?: string;
+  forcePicker?: boolean;
   filter?: HostFilter;
   onChooseHost: HostChoiceHandler;
   onNoHosts?: () => void;
@@ -77,7 +78,7 @@ export function useHostChooser() {
         return false;
       }
 
-      if (availableHosts.length === 1) {
+      if (availableHosts.length === 1 && !input.forcePicker) {
         void input.onChooseHost(availableHosts[0].serverId);
         return true;
       }

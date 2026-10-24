@@ -152,7 +152,7 @@ describe("keyboard-shortcuts", () => {
     });
   });
 
-  it("reserves Cmd-Z, Cmd-S, and Cmd-Shift-S for workspace navigation", () => {
+  it("reserves Cmd-Z, Cmd-S, and Cmd-Shift-S for workspace navigation and history", () => {
     expect(
       DEFAULT_BINDINGS.find((binding) => binding.id === "workspace-previous-cmd-z-mac"),
     ).toMatchObject({
@@ -164,14 +164,14 @@ describe("keyboard-shortcuts", () => {
       DEFAULT_BINDINGS.find((binding) => binding.id === "workspace-project-list-cmd-s-mac"),
     ).toMatchObject({
       action: "workspace.project.list",
-      combo: "Cmd+Shift+S",
+      combo: "Cmd+S",
       when: { workspacesOnly: true },
     });
     expect(
-      DEFAULT_BINDINGS.find((binding) => binding.id === "sessions-list-cmd-s-mac"),
+      DEFAULT_BINDINGS.find((binding) => binding.id === "sessions-list-cmd-shift-s-mac"),
     ).toMatchObject({
       action: "sessions.list",
-      combo: "Cmd+S",
+      combo: "Cmd+Shift+S",
       when: { workspacesOnly: true },
     });
     expect(

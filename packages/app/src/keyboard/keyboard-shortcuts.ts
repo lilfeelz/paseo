@@ -1156,14 +1156,14 @@ const SHORTCUT_BINDINGS: readonly ShortcutBinding[] = [
   {
     id: "workspace-project-list-cmd-s-mac",
     action: "workspace.project.list",
-    combo: "Cmd+Shift+S",
+    combo: "Cmd+S",
     when: { mac: true, commandCenter: false, workspacesOnly: true },
     help: { id: "workspace-project-list", section: "workspaces", label: "Project workspaces" },
   },
   {
-    id: "sessions-list-cmd-s-mac",
+    id: "sessions-list-cmd-shift-s-mac",
     action: "sessions.list",
-    combo: "Cmd+S",
+    combo: "Cmd+Shift+S",
     when: { mac: true, commandCenter: false, workspacesOnly: true },
     help: { id: "sessions-list", section: "workspaces", label: "Sessions" },
   },
