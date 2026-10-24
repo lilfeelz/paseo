@@ -22,7 +22,6 @@ function WorkspaceRow({
   busy,
   onOpen,
   selected,
-  onSelect,
   onLayout,
   index,
   styles,
@@ -31,13 +30,11 @@ function WorkspaceRow({
   busy: boolean;
   onOpen: (entry: WorkspaceEntry) => void;
   selected: boolean;
-  onSelect: (index: number) => void;
   onLayout: (index: number, layout: { y: number; height: number }) => void;
   index: number;
   styles: { text: object; detail: object; row: object; rowSelected: object };
 }) {
   const open = useCallback(() => onOpen(entry), [entry, onOpen]);
-  const select = useCallback(() => onSelect(index), [index, onSelect]);
   const layout = useCallback(
     (event: { nativeEvent: { layout: { y: number; height: number } } }) =>
       onLayout(index, event.nativeEvent.layout),
@@ -55,7 +52,6 @@ function WorkspaceRow({
     <Pressable
       accessibilityRole="button"
       disabled={busy}
-      onHoverIn={select}
       onLayout={layout}
       onPress={open}
       style={rowStyle}
@@ -257,7 +253,6 @@ function Workspaces({ theme, host, params, navigation }: PluginScreenProps) {
           onOpen={openEntry}
           styles={styles}
           selected={index === selectedIndex}
-          onSelect={setActiveIndex}
           onLayout={handleRowLayout}
           index={index}
         />
