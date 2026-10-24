@@ -1,5 +1,5 @@
 import { useMemo, useState, useCallback, useEffect, type ReactElement } from "react";
-import { View, Text, Modal } from "react-native";
+import { View, Text } from "react-native";
 import { useIsFocused } from "expo-router/react-navigation";
 import { router } from "expo-router";
 import { StyleSheet, useUnistyles } from "react-native-unistyles";
@@ -12,6 +12,12 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { AgentList } from "@/components/agent-list";
 import { SearchField } from "@/components/ui/search-field";
 import { PressHighlight } from "@/components/ui/press-highlight";
+import { isWeb } from "@/constants/platform";
+import {
+  OverlayLayerProvider,
+  useGlobalWebOverlayLayer,
+  useWebOverlayRegistration,
+} from "@/lib/overlay-root";
 import { HostFilter } from "@/components/hosts/host-filter";
 import { ALL_HOSTS_OPTION_ID } from "@/components/hosts/host-picker";
 import { type AgentHistoryHostError, useAgentHistory } from "@/hooks/use-agent-history";
@@ -74,17 +80,32 @@ export function SessionsScreen({ overlay = false }: { overlay?: boolean }) {
 
 function HistoryOverlay({ children }: { children: ReactElement }) {
   const close = useCallback(() => router.back(), []);
+  const layer = useGlobalWebOverlayLayer("modal", isWeb);
+  const handleKeyDown = useCallback(
+    (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return false;
+      event.preventDefault();
+      close();
+      return true;
+    },
+    [close],
+  );
+  const setOverlayScope = useWebOverlayRegistration({
+    active: isWeb,
+    layer,
+    onKeyDown: handleKeyDown,
+  });
   const backdropStyle = useCallback(
     ({ pressed }: { pressed: boolean }) => [styles.overlayBackdrop, pressed && { opacity: 0.8 }],
     [],
   );
   return (
-    <Modal visible transparent animationType="fade" onRequestClose={close}>
-      <View style={styles.overlayRoot}>
+    <OverlayLayerProvider layer={isWeb ? layer : 0}>
+      <View ref={setOverlayScope} style={[styles.overlayRoot, isWeb && { zIndex: layer }]}>
         <PressHighlight accessibilityRole="button" style={backdropStyle} onPress={close} />
         <View style={styles.overlayPanel}>{children}</View>
       </View>
-    </Modal>
+    </OverlayLayerProvider>
   );
 }
 
@@ -249,6 +270,11 @@ const styles = StyleSheet.create((theme) => ({
     backgroundColor: theme.colors.surface0,
   },
   overlayRoot: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
     flex: 1,
     justifyContent: "flex-start",
     alignItems: "center",
